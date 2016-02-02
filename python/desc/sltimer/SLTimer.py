@@ -2,10 +2,6 @@
 # License info here?
 # ==============================================================================
 
-import sltimer
-
-# ==============================================================================
-
 class SLTimer(object):
     '''
     Simple class for ingesting strong lens light curve data, and measuring the
@@ -28,7 +24,7 @@ class SLTimer(object):
 
 if __name__ == '__main__':
 
-    timer = sltimer.SLTimer()
+    timer = SLTimer()
 
     timer.read("lightcurve.txt")
 

@@ -3,7 +3,7 @@
 
 Time delay measurement from LSST light curves.
 
-In the first instance (DC1), SLTimer will be a simple python class for calling community-developed time delay estimation algorithms, to enable early testing of DM-produced light curves in the [Twinkles project](https://github.com/DarkEnergyScienceCollaboration/Twinkles). 
+In the first instance (DC1), SLTimer will be a simple python class for calling community-developed time delay estimation algorithms, to enable early testing of DM-produced light curves in the [Twinkles project](https://github.com/DarkEnergyScienceCollaboration/Twinkles), and to check the Evil Team's simulated light curves in the [2nd Time Delay Challenge](http://timdelaychallenge.org). 
 
 
 ## Demos

@@ -1,4 +1,5 @@
 # SLTimer
+[![Build Status](https://travis-ci.org/DarkEnergyScienceCollaboration/SLTimer.svg?branch=master)](https://travis-ci.org/DarkEnergyScienceCollaboration/SLTimer)
 
 Time delay measurement from LSST light curves.
 

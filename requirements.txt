@@ -1,0 +1,4 @@
+numpy
+matplotlib
+scikit-learn
+git+git://github.com/COSMOGRAIL/PyCS.git#egg=pycs

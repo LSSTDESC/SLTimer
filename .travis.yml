@@ -1,0 +1,13 @@
+language: python
+
+install:
+  - conda install -c https://conda.binstar.org/pymc pymc
+  - pip install -r requirements.txt
+  - source setup/setup.sh
+  - pip install coveralls
+
+script:
+  - nosetests -s --with-coverage --cover-package=desc.sltimer
+
+after_success:
+  - coveralls

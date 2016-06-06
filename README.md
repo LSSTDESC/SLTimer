@@ -16,6 +16,7 @@ In the first instance (DC1), SLTimer will be a simple python class for calling c
 
 * [Tom Glanzman](https://github.com/DarkEnergyScienceCollaboration/SLTimer/issues/new?body=@TomGlanzman) (SLAC)
 * [Phil Marshall](https://github.com/DarkEnergyScienceCollaboration/SLTimer/issues/new?body=@drphilmarshall) (SLAC)
+* [Milan Williams](https://github.com/DarkEnergyScienceCollaboration/SLTimer/issues/new?body=@milanwilliams) (Notre Dame HS, San Jose)
 
 
 ## License, Contributing etc

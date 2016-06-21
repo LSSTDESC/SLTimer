@@ -3,8 +3,9 @@ Test code for SLTimer class.
 """
 from __future__ import absolute_import, division
 import unittest
-from desc.sltimer import SLTimer
 
+import desc.sltimer
+from desc.sltimer import SLTimer
 
 class SLTimerTestCase(unittest.TestCase):
     "TestCase class for SLTimer class."
@@ -16,7 +17,7 @@ class SLTimerTestCase(unittest.TestCase):
     
     def test_download(self):
         '''
-        This is the test to see if the URL downloaded properly
+        Checking to see if the URL downloaded properly:
         '''
         url = "https://raw.githubusercontent.com/COSMOGRAIL/PyCS/master/demo/demo1/data/trialcurves.txt"
         datafile = self.timer.download(url)
@@ -29,7 +30,7 @@ class SLTimerTestCase(unittest.TestCase):
         return
 
     def test_read(self):
-        "Test the read function."
+        "Testing the read function:"
         self.timer.read("lightcurve.txt")
         self.assertEqual(self.timer.lc, None)
 

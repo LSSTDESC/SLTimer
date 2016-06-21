@@ -13,11 +13,26 @@ class SLTimerTestCase(unittest.TestCase):
         Set up each test with a new SLTimer object.
         """
         self.timer = SLTimer()
+    
+    def test_download(self):
+        '''
+        This is the test to see if the URL downloaded properly
+        '''
+        url = "https://raw.githubusercontent.com/COSMOGRAIL/PyCS/master/demo/demo1/data/trialcurves.txt"
+        datafile = self.timer.download(url)
+        numLines = 0
+        with open(datafile, 'r') as file:
+            for line in file:
+                wordsList = line.split()
+                numLines += 1
+        self.assertEqual(numLines, 194)
+        return
 
     def test_read(self):
         "Test the read function."
         self.timer.read("lightcurve.txt")
         self.assertEqual(self.timer.lc, None)
+
 
 
 if __name__ == '__main__':

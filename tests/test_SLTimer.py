@@ -28,13 +28,11 @@ class SLTimerTestCase(unittest.TestCase):
                 numLines += 1
         self.assertEqual(numLines, 194)
         return
-    
+
     def test_read(self):
         "Testing the read function:"
         self.timer.read("lightcurve.txt")
         self.assertEqual(self.timer.lc, None)
-
-
 
 if __name__ == '__main__':
     unittest.main()

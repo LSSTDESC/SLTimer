@@ -14,7 +14,7 @@ Run the SLTimer IPython notebooks with [Binder](http://mybinder.org):
 [![Binder](http://mybinder.org/badge.svg)](http://mybinder.org/repo/DarkEnergyScienceCollaboration/SLTimer)
 
 Browse them on GitHub:
-* [Work through of the PyCS Tutorial](https://github.com/DarkEnergyScienceCollaboration/SLTimer/blob/master/notebooks/Demo.ipynb) (under construction): 
+* [Work through the PyCS Tutorial](https://github.com/DarkEnergyScienceCollaboration/SLTimer/blob/master/notebooks/Demo.ipynb) (under construction): 
 
 
 ## People

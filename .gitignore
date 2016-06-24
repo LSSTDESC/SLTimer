@@ -64,5 +64,9 @@ target/
 # Backup files
 *~
 
-# Data
+# Input and output data, plots and pickles
 trialcurves.txt
+*.pkl
+fig*pdf
+out*txt
+sims_*

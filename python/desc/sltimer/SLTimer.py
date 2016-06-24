@@ -224,7 +224,7 @@ class SLTimer(object):
         pycs.sim.plot.hists(dataresults, r=5.0, nbins=100, showqs=False,
                 filename="fig_intrinsicvariance.pdf", dataout=True)
         return
-    #=====================================================Error Analysis
+    #=========================================================Error Analysis
     def error_summary(self):
         import pycs
         self.variables()

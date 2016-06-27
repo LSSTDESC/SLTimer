@@ -3,7 +3,7 @@
 # ==============================================================================
 import os, urllib
 
-from desc.sltimer import *
+from desc.sltimer.IO import *
 
 class SLTimer(object):
     '''
@@ -12,6 +12,7 @@ class SLTimer(object):
     '''
     
     def __init__(self):
+        self.agn = None
         return
 
     def download(self,url,format='pycs'):
@@ -26,124 +27,97 @@ class SLTimer(object):
         if format == 'tdc2': self.lcs = read_in_tdc2_data(self.datafile)
         return
     
-    def spl(self):
-        global spl
-        def spl(lcs):
-            import pycs
-            spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50)
-            spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30)
-            spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20)
-            return spline
-
-    def basic_spl(self):
-        global spl
-        def spl(lcs):
-            import pycs
-            spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50)
-            for l in lcs:
-                l.resetml()
-            spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30)
-            spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20)
-            return spline
-
-    def defines_variables(self):
-        self.defines_datafile_type()
-        self.spl()
-        return
-
-    #==========================================================Demo Model
-    def display_light_curves(self):
+    def optimize_spline_model(self):
         import pycs
-        self.defines_datafile_type()
-        pycs.gen.mrg.colourise(lcs)
-        lcs[1].shifttime(-5.0)
-        lcs[2].shifttime(-20.0)
-        lcs[3].shifttime(-70.0)
-        pycs.gen.lc.display(lcs, figsize=(20, 7), jdrange=(53900, 55500))
-        lcs = pycs.gen.util
-        for l in lcs:
-            l.resetshifts()
-        pycs.gen.lc.display(lcs, filename="fig_trialcurves_true-shifted.pdf")
-        return
-    #=====================================================Time Delays
+        spline = pycs.spl.topopt.opt_rough(self.lcs, nit=5, knotstep=50)
+        spline = pycs.spl.topopt.opt_rough(self.lcs, nit=5, knotstep=30)
+        spline = pycs.spl.topopt.opt_fine(self.lcs, nit=10, knotstep=20)
+        return spline
 
-    def show_basic_time_delays(self):
+    #==========================================================Plotting
+  
+    def display_light_curves(self,filename=None):
         import pycs
-        self.lcs()
-        self.basic_spl()
-        pycs.gen.mrg.colourise(lcs)
-        spline = spl(lcs)
-        basic_time_delays = pycs.gen.lc.getnicetimedelays(lcs, separator="\n", sorted=True)
-        print("Time Delays (no microlensing):")
-        print(basic_time_delays)
+        pycs.gen.mrg.colourise(self.lcs)
+        # Replace the following with an optional input list of shifts
+        # lcs[1].shifttime(-5.0)
+        # lcs[2].shifttime(-20.0)
+        # lcs[3].shifttime(-70.0)
+        pycs.gen.lc.display(self.lcs, [self.agn], figsize=(20, 7), jdrange=(53900, 55500))
+        # lcs = pycs.gen.util
+        # for l in lcs:
+        #     l.resetshifts()
+        if filename is not None:
+            pycs.gen.lc.display(self.lcs, filename=filename)
+        return
+   
+   #=====================================================Microlensing
+    
+    def add_polynomial_microlensing(self):
+        import pycs
+        pycs.gen.polyml.addtolc(self.lcs[1], nparams=2, autoseasonsgap=600.0)
+        pycs.gen.polyml.addtolc(self.lcs[2], nparams=3, autoseasonsgap=600.0)
+        pycs.gen.polyml.addtolc(self.lcs[3], nparams=3, autoseasonsgap=600.0)
         return
     
-    def show_polynomial_time_delays(self):
+    def add_spline_microlensing(self):
         import pycs
-        self.defines_variables()
-        pycs.gen.polyml.addtolc(lcs[1], nparams=2, autoseasonsgap=600.0)
-        pycs.gen.polyml.addtolc(lcs[2], nparams=3, autoseasonsgap=600.0)
-        pycs.gen.polyml.addtolc(lcs[3], nparams=3, autoseasonsgap=600.0)
-        spline = spl(lcs)
-        polynomial_microlensing_time_delays = pycs.gen.lc.getnicetimedelays(lcs, separator="\n", sorted=True)
-        print("Time Delays (microlensing included, with polynomials):")
-        print(polynomial_microlensing_time_delays)
-        return
-    
-    def show_spline_time_delays(self):
-        import pycs
-        self.defines_variables()
-        pycs.gen.splml.addtolc(lcs[0], knotstep=150)
-        pycs.gen.splml.addtolc(lcs[1], knotstep=150)
-        pycs.gen.splml.addtolc(lcs[2], knotstep=150)
-        pycs.gen.splml.addtolc(lcs[3], knotstep=150)
-        spline = spl(lcs)
-        spline_microlensing_time_delays = pycs.gen.lc.getnicetimedelays(lcs, separator="\n", sorted=True)
-        print("Time Delays (microlensing included, with splines):")
-        print(spline_microlensing_time_delays)
+        pycs.gen.splml.addtolc(self.lcs[0], knotstep=150)
+        pycs.gen.splml.addtolc(self.lcs[1], knotstep=150)
+        pycs.gen.splml.addtolc(self.lcs[2], knotstep=150)
+        pycs.gen.splml.addtolc(self.lcs[3], knotstep=150)
         return
 
-
-    def estimate_time_delays(self,method='pycs',microlensing='polynomial',agn='spline',error=None): #Provides both polynomial and spline time delays
-        if 'pycs':
+    #=============================================Primary workhorse method
+ 
+    def estimate_time_delays(self,method='pycs',microlensing='polynomial',agn='spline',error=None):
+        '''
+        Provides both polynomial and spline time delays.
+        '''
+        import pycs
+        if method == 'pycs':
             print ("You are using the pycs method.")
         else:
+            print ("The only available method is 'pycs' - exiting.")
             return
-        if 'polynomial':
-            self.polynomial_time_delays()
-    
+        
+        # Tell the lightcurves that their model is going to include microlensing:
+        if microlensing == 'polynomial':
+            self.add_polynomial_microlensing()
+        elif microlensing == 'spline':
+            self.add_spline_microlensing()
         else:
-            return
-        if 'spline':
-            self.spline_time_delays()
+            pass
+
+        # Optimize the model for both microlensing and intrinsic variability:
+        if agn == 'spline':
+            self.agn = self.optimize_spline_model()
         else:
+            print "Error: only spline models availale for AGN variability at present."
             return
-        if 'intrinsic variance':
-            self.find_intrinsic_variance
-        elif 'complete':
+
+        # Print out time delays:
+        time_delays = pycs.gen.lc.getnicetimedelays(self.lcs, separator="\n", sorted=True)
+        print("Time Delays:")
+        print(time_delays)
+
+        # Error analysis:
+        if error == 'intrinsic variance':
+            self.find_intrinsic_variance()
+        elif error == 'complete':
             self.estimate_uncertainties()
         else:
             return
 
-    #=============================================Creates the basic model version
-    def display_basic_method_plot(self):
-        import pycs
-        self.defines_variables()
-        spline = spl(lcs)
-        self.show_basic_time_delays()
-        pycs.gen.mrg.colourise(lcs)
-        pycs.gen.lc.display(lcs, [spline], knotsize=0.01, figsize=(20, 7), jdrange=(53900, 55500))
-        return
 
-       #===============================================Creates the polynomial version
+       #===============================================Display plots
+    '''
+    def display_time_delay_plot(self,type='polynomial')
+        import pycs
+        self
+    '''
     def display_polynomial_method_plot(self):
         import pycs
-        self.display_basic_method_plot()
-        pycs.gen.polyml.addtolc(lcs[1], nparams=2, autoseasonsgap=600.0)
-        pycs.gen.polyml.addtolc(lcs[2], nparams=3, autoseasonsgap=600.0)
-        pycs.gen.polyml.addtolc(lcs[3], nparams=3, autoseasonsgap=600.0)
-        spline = spl(lcs)
-        self.show_polynomial_time_delays()
         pycs.gen.mrg.colourise(lcs)
         pycs.gen.lc.display(lcs, [spline], knotsize=0.01, figsize=(20, 7), jdrange=(53900, 55500))
         return
@@ -162,7 +136,7 @@ class SLTimer(object):
         pycs.gen.lc.display(lcs, [spline], knotsize=0.01, figsize=(20, 7), jdrange=(53900, 55500)) #displays spline graph
         pycs.gen.util.writepickle((lcs, spline), "optspline.pkl")
         return
-
+    #==================================================Deletes Files
     def delete_old_files(self):
         import subprocess
         subprocess.call('rm -rfv sims_copies sims_mocks', shell=True)
@@ -170,7 +144,6 @@ class SLTimer(object):
         subprocess.call('rm -rfv sims_mocks_opt_spl sims_mocks_opt_disp sims_mocks_opt_regdiff', shell=True)
         print "The old files have been deleted."
         return
-    #=====================================================Time Delay Uncertainties
 
     #===================================================== Copying the Data
     def make_plain_copies(self,n=None,npkl=None):
@@ -241,6 +214,7 @@ class SLTimer(object):
 
     #=====================================================Complete Error Analysis
     def estimate_uncertainties(self,n=None,npkl=None):
+        self.delete_old_files()
         self.make_plain_copies(n=n,npkl=npkl)
         self.make_mock_light_curves(n=n,npkl=npkl)
         self.make_plain_copies_model_fits()

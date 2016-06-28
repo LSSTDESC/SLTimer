@@ -14,8 +14,8 @@ Run the SLTimer IPython notebooks with [Binder](http://mybinder.org):
 [![Binder](http://mybinder.org/badge.svg)](http://mybinder.org/repo/DarkEnergyScienceCollaboration/SLTimer)
 
 Browse them on GitHub:
-* [Work through the PyCS Tutorial](https://github.com/DarkEnergyScienceCollaboration/SLTimer/blob/master/notebooks/Demo.ipynb) (under construction): 
-
+* [PyCS Tutorial](https://github.com/DarkEnergyScienceCollaboration/SLTimer/blob/master/notebooks/PyCS_Tutorial.ipynb): all of the steps in the `PyCS` demo1 tutorial, in notebook form.
+* [SLTimer Tutorial](https://github.com/DarkEnergyScienceCollaboration/SLTimer/blob/master/notebooks/SLTimer_Tutorial.ipynb): carry out a simple "free-knot spline" `PyCS` model fit, on the `PyCS` demo1 trialcurves dataset.
 
 ## People
 

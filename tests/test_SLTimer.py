@@ -34,5 +34,8 @@ class SLTimerTestCase(unittest.TestCase):
         self.timer.read("lightcurve.txt")
         self.assertEqual(self.timer.lc, None)
 
+    #for item in kwarg.item() n,npkl
+    #print item
+
 if __name__ == '__main__':
     unittest.main()

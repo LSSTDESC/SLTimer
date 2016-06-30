@@ -13,6 +13,8 @@ class SLTimer(object):
 
     def __init__(self):
         self.agn = None
+        self.microlensing = None
+        self.time_delays = None
         return
 
     def download(self,url,format='rdb'):
@@ -67,7 +69,7 @@ class SLTimer(object):
 
     #============================================= Primary workhorse method
 
-    def estimate_time_delays(self,method='pycs',microlensing='polynomial',agn='spline',error=None):
+    def estimate_time_delays(self,method='pycs',microlensing='spline',agn='spline',error=None):
         '''
         Provides both polynomial and spline time delays.
         '''
@@ -85,6 +87,8 @@ class SLTimer(object):
             self.add_spline_microlensing()
         else:
             pass
+        # Keep a record:
+        self.microlensing = microlensing
 
         # Optimize the model for both microlensing and intrinsic variability:
         if agn == 'spline':
@@ -94,9 +98,7 @@ class SLTimer(object):
             return
 
         # Print out time delays:
-        time_delays = pycs.gen.lc.getnicetimedelays(self.lcs, separator="\n", sorted=True)
-        print("Time Delays:")
-        print(time_delays)
+        self.report_time_delays()
 
         # Do error analysis, if required:
         if error == 'complete':
@@ -172,6 +174,8 @@ class SLTimer(object):
         import pycs
         simresults = [
                       pycs.sim.run.collect("sims_mocks_opt_spl", "blue", "Free-knot spline technique")]
+        # Nice to replace self.time_delays with a version including error bars here...
+        # Maybe write out the "samples" for post-processing! Could also make a corner plot...
         # Compare measured time delays with truth:
         pycs.sim.plot.measvstrue(simresults, errorrange=3.5, r=5.0, nbins = 1, binclip=True, binclipr=20.0,
                                  plotpoints=False, filename="fig_measvstrue.pdf", dataout=True)
@@ -202,6 +206,13 @@ class SLTimer(object):
         self.make_plain_copies(n=n,npkl=npkl)
         self.make_plain_copies_model_fits()
         self.make_plain_copies_model()
+        return
+
+    def report_time_delays(self):
+        import pycs
+        print("Time Delays:")
+        self.time_delays = pycs.gen.lc.getnicetimedelays(self.lcs, separator="\n", sorted=True)
+        print(self.time_delays)
         return
 
 # ==============================================================================

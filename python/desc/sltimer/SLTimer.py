@@ -1,9 +1,13 @@
 # ==============================================================================
 # License info here?
 # ==============================================================================
+from __future__ import absolute_import
 import os, urllib
+import subprocess
+import pycs
+from .IO import *
 
-from desc.sltimer.IO import *
+__all__ = ['SLTimer', 'spl']
 
 class SLTimer(object):
     '''
@@ -36,7 +40,6 @@ class SLTimer(object):
     #========================================================== Plotting light curves
 
     def display_light_curves(self,filename=None):
-        import pycs
         pycs.gen.mrg.colourise(self.lcs)
         # Replace the following with an optional input list of shifts
         # lcs[1].shifttime(-5.0)
@@ -53,14 +56,12 @@ class SLTimer(object):
     #===================================================== Microlensing
 
     def add_polynomial_microlensing(self):
-        import pycs
         pycs.gen.polyml.addtolc(self.lcs[1], nparams=2, autoseasonsgap=600.0)
         pycs.gen.polyml.addtolc(self.lcs[2], nparams=3, autoseasonsgap=600.0)
         pycs.gen.polyml.addtolc(self.lcs[3], nparams=3, autoseasonsgap=600.0)
         return
 
     def add_spline_microlensing(self):
-        import pycs
         pycs.gen.splml.addtolc(self.lcs[0], knotstep=150)
         pycs.gen.splml.addtolc(self.lcs[1], knotstep=150)
         pycs.gen.splml.addtolc(self.lcs[2], knotstep=150)
@@ -73,7 +74,6 @@ class SLTimer(object):
         '''
         Provides both polynomial and spline time delays.
         '''
-        import pycs
         if method == 'pycs':
             print("You are using the pycs method.")
         else:
@@ -111,7 +111,6 @@ class SLTimer(object):
     #===================================================== Resimulating the Data
 
     def delete_old_files(self):
-        import subprocess
         subprocess.call('rm -rfv sims_copies sims_mocks', shell=True)
         subprocess.call('rm -rfv sims_copies_opt_spl sims_copies_opt_disp sims_copies_opt_regdiff', shell=True)
         subprocess.call('rm -rfv sims_mocks_opt_spl sims_mocks_opt_disp sims_mocks_opt_regdiff', shell=True)
@@ -119,14 +118,12 @@ class SLTimer(object):
         return
 
     def make_plain_copies(self,n=None,npkl=None):
-        import pycs
         Ncopies = n*npkl
         print("Making",Ncopies,"copies of the original dataset:")
         pycs.sim.draw.multidraw(self.lcs, onlycopy=True, n=n, npkl=npkl, simset="copies")
         return
 
     def make_mock_light_curves(self,n=None,npkl=None):
-        import pycs
         # (modellcs, modelspline) = pycs.gen.util.readpickle("optspline.pkl")
         modellcs, modelspline = self.lcs, self.agn
         def Atweakml(xlcs):
@@ -148,20 +145,17 @@ class SLTimer(object):
     #===================================================== Making Multiple Model Fits
 
     def make_spline_model_fits_of_plain_copies(self):
-        import pycs
         # Pass the optimizer function to multirun:
         pycs.sim.run.multirun("copies", self.lcs, spl, optset="spl", tsrand=10.0, keepopt=True)
         return
 
     def make_spline_model_fits_of_mock_light_curves(self):
-        import pycs
         tsrand = 1.0
         # Pass the optimizer function to multirun:
         pycs.sim.run.multirun("mocks", self.lcs, spl, optset="spl", tsrand=tsrand, keepopt=True)
         return
 
     def make_plain_copies_model(self): #The histogram will give the instrinic variance
-        import pycs
         dataresults = [
                 pycs.sim.run.collect("sims_copies_opt_spl", "blue", "Free-knot spline technique")]
         pycs.sim.plot.hists(dataresults, r=5.0, nbins=100, showqs=False,
@@ -171,7 +165,6 @@ class SLTimer(object):
     #========================================================= Error Analysis
 
     def error_summary(self):
-        import pycs
         simresults = [
                       pycs.sim.run.collect("sims_mocks_opt_spl", "blue", "Free-knot spline technique")]
         # Nice to replace self.time_delays with a version including error bars here...
@@ -209,7 +202,6 @@ class SLTimer(object):
         return
 
     def report_time_delays(self):
-        import pycs
         print("Time Delays:")
         self.time_delays = pycs.gen.lc.getnicetimedelays(self.lcs, separator="\n", sorted=True)
         print(self.time_delays)
@@ -222,7 +214,6 @@ class SLTimer(object):
 # Optimizer functions (could go in "optimize.py" instead?)
 
 def spl(lcs):
-    import pycs
     spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50)
     spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30)
     spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20)

@@ -14,8 +14,8 @@ class SLTimerTestCase(unittest.TestCase):
             Set up each test with a new SLTimer object.
             """
         self.timer = SLTimer()
-    
-    def test_download(self):
+
+    def test_download_and_read_in(self):
         '''
             Checking to see if the URL downloaded properly:
             '''
@@ -29,13 +29,6 @@ class SLTimerTestCase(unittest.TestCase):
         self.assertEqual(numLines, 194)
         return
 
-    def test_read(self):
-        "Testing the read function:"
-        self.timer.read("lightcurve.txt")
-        self.assertEqual(self.timer.lc, None)
-
-    #for item in kwarg.item() n,npkl
-    #print item
 
 if __name__ == '__main__':
     unittest.main()

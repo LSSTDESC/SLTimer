@@ -19,9 +19,11 @@ class SLTimer(object):
         self.agn = None
         self.microlensing = None
         self.time_delays = None
+        self.datafile = None
+        self.lcs = None
         return
 
-    def download(self,url,format='rdb'):
+    def download(self, url, format='rdb'):
         self.datafile = url.split('/')[-1]
         if not os.path.isfile(self.datafile):
             urllib.urlretrieve(url, self.datafile)
@@ -29,8 +31,8 @@ class SLTimer(object):
         self.read_in(format=format)
         return
 
-    def read_in(self,format=None):
-        if format == 'rdb':  self.lcs = read_in_rdb_data(self.datafile)
+    def read_in(self, format=None):
+        if format == 'rdb': self.lcs = read_in_rdb_data(self.datafile)
         if format == 'tdc2': self.lcs = read_in_tdc2_data(self.datafile)
         return
 
@@ -155,11 +157,10 @@ class SLTimer(object):
         pycs.sim.run.multirun("mocks", self.lcs, spl, optset="spl", tsrand=tsrand, keepopt=True)
         return
 
-    def make_plain_copies_model(self): #The histogram will give the instrinic variance
-        dataresults = [
-                pycs.sim.run.collect("sims_copies_opt_spl", "blue", "Free-knot spline technique")]
+    def plot_intrinsic_variance_histograms(self): #The histogram will give the instrinic variance
+        dataresults = [pycs.sim.run.collect("sims_copies_opt_spl", "blue", "Free-knot spline technique")]
         pycs.sim.plot.hists(dataresults, r=5.0, nbins=100, showqs=False,
-                filename="fig_intrinsicvariance.pdf", dataout=True)
+                            filename="fig_intrinsicvariance.pdf", dataout=True)
         return
 
     #========================================================= Error Analysis
@@ -191,14 +192,14 @@ class SLTimer(object):
         # Add in an option to use regdiff and disp here?
         self.make_spline_model_fits_of_plain_copies()
         self.make_spline_model_fits_of_mock_light_curves()
-        self.make_plain_copies_model()
+        self.plot_intrinsic_variance_histograms()
         self.error_summary()
         return
 
     def find_intrinsic_variance(self,n=None,npkl=None):
         self.make_plain_copies(n=n,npkl=npkl)
-        self.make_plain_copies_model_fits()
-        self.make_plain_copies_model()
+        self.make_spline_model_fits_of_plain_copies()
+        self.plot_intrinsic_variance_histograms()
         return
 
     def report_time_delays(self):

@@ -5,7 +5,6 @@ from __future__ import absolute_import, division
 import unittest
 
 import desc.sltimer
-from desc.sltimer import *
 
 class SLTimerTestCase(unittest.TestCase):
     "TestCase class for SLTimer class."
@@ -13,7 +12,7 @@ class SLTimerTestCase(unittest.TestCase):
         """
             Set up each test with a new SLTimer object.
             """
-        self.timer = SLTimer()
+        self.timer = desc.sltimer.SLTimer()
 
     def test_download_and_read_in(self):
         '''

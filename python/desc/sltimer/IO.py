@@ -1,6 +1,7 @@
+import pycs
+__all__ = ['read_in_rdb_data', 'read_in_tdc2_data']
 
 def read_in_rdb_data(datafile):
-    import pycs
     lcs =  [
             pycs.gen.lc.rdbimport(datafile, 'A', 'mag_A', 'magerr_A', "Trial"),
             pycs.gen.lc.rdbimport(datafile, 'B', 'mag_B', 'magerr_B', "Trial"),
@@ -10,7 +11,6 @@ def read_in_rdb_data(datafile):
     return lcs
 
 def read_in_tdc2_data(datafile):
-    import pycs
     lcs = [
             tdc2import(datafile, 'A', 'flux_A', 'flux_A_err', "Trial"),
             tdc2import(datafile, 'B', 'flux_B', 'flux_B_err', "Trial"),
@@ -18,7 +18,3 @@ def read_in_tdc2_data(datafile):
             tdc2import(datafile, 'D', 'flux_D', 'flux_D_err', "Trial"),
             ]
     return lcs
-
-
-
-

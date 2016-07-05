@@ -1,12 +1,7 @@
-import os
-import numpy as np
-
 import pycs
-__all__ = ['read_in_r
-           db_data', 'read_in_tdc2_data']
+__all__ = ['read_in_rdb_data', 'read_in_tdc2_data']
 
 def read_in_rdb_data(datafile):
-    import pycs
     lcs =  [
             pycs.gen.lc.rdbimport(datafile, 'A', 'mag_A', 'magerr_A', "Trial"),
             pycs.gen.lc.rdbimport(datafile, 'B', 'mag_B', 'magerr_B', "Trial"),
@@ -16,9 +11,7 @@ def read_in_rdb_data(datafile):
     return lcs
 
 def read_in_tdc2_data(datafile):
-    import pycs
-    datafile = tdc2-gateway-example.txt
-       lcs = [
+    lcs = [
             tdc2import(datafile, 'A', 'flux_A', 'flux_A_err', "Trial"),
             tdc2import(datafile, 'B', 'flux_B', 'flux_B_err', "Trial"),
             tdc2import(datafile, 'C', 'flux_C', 'flux_C_err', "Trial"),
@@ -26,7 +19,6 @@ def read_in_tdc2_data(datafile):
             ]
     return lcs
     
-
 #===================================================================unfinished
     def factory(jds, mags, magerrs=None, telescopename="Unknown", object="Unknown", verbose=False):
         """
@@ -243,6 +235,3 @@ def read_in_tdc2_data(datafile):
     ---
     preserve the pycs structure; my own version of factory and flexibleimport; flexibleimport --> multifilter=True; units=flux(instead of mags)
     """
-
-
-

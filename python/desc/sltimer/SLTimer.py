@@ -1,39 +1,47 @@
 # ==============================================================================
 # License info here?
 # ==============================================================================
+from __future__ import absolute_import
 import os, urllib
+import subprocess
+import pycs
+from .IO import *
 
-from desc.sltimer.IO import *
+__all__ = ['SLTimer', 'spl']
 
 class SLTimer(object):
     '''
     Simple class for ingesting strong lens light curve data, and measuring the
     time .
     '''
-    
+
     def __init__(self):
         self.agn = None
+        self.microlensing = None
+        self.time_delays = None
+        self.datafile = None
+        self.lcs = None
         return
 
-    def download(self,url,format='pycs'):
+    def download(self, url, format='rdb'):
         self.datafile = url.split('/')[-1]
         if not os.path.isfile(self.datafile):
             urllib.urlretrieve(url, self.datafile)
         print 'Downloaded datafile:', url
+        self.read_in(format=format)
         return
-            
-    def read_in(self,format=None):
-        if format == 'rdb':  self.lcs = read_in_rdb_data(self.datafile)
+
+    def read_in(self, format=None):
+        if format == 'rdb': self.lcs = read_in_rdb_data(self.datafile)
         if format == 'tdc2': self.lcs = read_in_tdc2_data(self.datafile)
         return
-    
+
     def optimize_spline_model(self):
         return spl(self.lcs)
 
-    #==========================================================Plotting
-  
+    #========================================================== Plotting light curves
+
     def display_light_curves(self,filename=None):
-        import pycs
         pycs.gen.mrg.colourise(self.lcs)
         # Replace the following with an optional input list of shifts
         # lcs[1].shifttime(-5.0)
@@ -46,39 +54,34 @@ class SLTimer(object):
         if filename is not None:
             pycs.gen.lc.display(self.lcs, filename=filename)
         return
-   
-   #=====================================================Microlensing
-    
+
+    #===================================================== Microlensing
+
     def add_polynomial_microlensing(self):
-        import pycs
         pycs.gen.polyml.addtolc(self.lcs[1], nparams=2, autoseasonsgap=600.0)
         pycs.gen.polyml.addtolc(self.lcs[2], nparams=3, autoseasonsgap=600.0)
         pycs.gen.polyml.addtolc(self.lcs[3], nparams=3, autoseasonsgap=600.0)
         return
-    
+
     def add_spline_microlensing(self):
-        import pycs
         pycs.gen.splml.addtolc(self.lcs[0], knotstep=150)
         pycs.gen.splml.addtolc(self.lcs[1], knotstep=150)
         pycs.gen.splml.addtolc(self.lcs[2], knotstep=150)
         pycs.gen.splml.addtolc(self.lcs[3], knotstep=150)
         return
 
-    #=============================================Primary workhorse method
- 
-    def estimate_time_delays(self,method='pycs',microlensing='polynomial',agn='spline',error=None):
+    #============================================= Primary workhorse method
+
+    def estimate_time_delays(self,method='pycs',microlensing='spline',agn='spline',error=None):
         '''
         Provides both polynomial and spline time delays.
         '''
-        import pycs
         if method == 'pycs':
-            print ("You are using the pycs method.")
-        elif method == 'tdc2':
-            print ("You are using the Time Delay Challenge 2 Method.")
+            print("You are using the pycs method.")
         else:
-            print ("The only available method is 'pycs' - exiting.")
+            print("The only available method is 'pycs' - exiting.")
             return
-        
+
         # Tell the lightcurves that their model is going to include microlensing:
         if microlensing == 'polynomial':
             self.add_polynomial_microlensing()
@@ -86,46 +89,43 @@ class SLTimer(object):
             self.add_spline_microlensing()
         else:
             pass
+        # Keep a record:
+        self.microlensing = microlensing
 
         # Optimize the model for both microlensing and intrinsic variability:
         if agn == 'spline':
             self.agn = self.optimize_spline_model()
         else:
-            print "Error: only spline models availale for AGN variability at present."
+            print "Error: only free-knot spline models are available for AGN variability at present."
             return
 
         # Print out time delays:
-        time_delays = pycs.gen.lc.getnicetimedelays(self.lcs, separator="\n", sorted=True)
-        print("Time Delays:")
-        print(time_delays)
+        self.report_time_delays()
 
-        # Error analysis:
-        if error == 'intrinsic variance':
-            self.find_intrinsic_variance()
-        elif error == 'complete':
+        # Do error analysis, if required:
+        if error == 'complete':
             self.estimate_uncertainties()
+        elif error == 'intrinsic variance':
+            self.find_intrinsic_variance()
         else:
             return
-    
-    #==================================================Deletes Files
+
+    #===================================================== Resimulating the Data
+
     def delete_old_files(self):
-        import subprocess
         subprocess.call('rm -rfv sims_copies sims_mocks', shell=True)
         subprocess.call('rm -rfv sims_copies_opt_spl sims_copies_opt_disp sims_copies_opt_regdiff', shell=True)
         subprocess.call('rm -rfv sims_mocks_opt_spl sims_mocks_opt_disp sims_mocks_opt_regdiff', shell=True)
         print "The old files have been deleted."
         return
 
-    #===================================================== Copying the Data
     def make_plain_copies(self,n=None,npkl=None):
-        import pycs
         Ncopies = n*npkl
         print("Making",Ncopies,"copies of the original dataset:")
         pycs.sim.draw.multidraw(self.lcs, onlycopy=True, n=n, npkl=npkl, simset="copies")
         return
-    
+
     def make_mock_light_curves(self,n=None,npkl=None):
-        import pycs
         # (modellcs, modelspline) = pycs.gen.util.readpickle("optspline.pkl")
         modellcs, modelspline = self.lcs, self.agn
         def Atweakml(xlcs):
@@ -143,78 +143,79 @@ class SLTimer(object):
         pycs.sim.draw.multidraw(modellcs, modelspline, n=n, npkl=npkl, simset="mocks",
                 truetsr=truetsr, tweakml=[Atweakml, Btweakml, Ctweakml, Dtweakml])
         return
-    #=====================================================Making Model Fits
 
-    def make_plain_copies_spline_model_fits(self):
-        import pycs
+    #===================================================== Making Multiple Model Fits
+
+    def make_spline_model_fits_of_plain_copies(self):
         # Pass the optimizer function to multirun:
         pycs.sim.run.multirun("copies", self.lcs, spl, optset="spl", tsrand=10.0, keepopt=True)
         return
 
-    def make_mock_light_curves_spline_model_fits(self):
-        import pycs
+    def make_spline_model_fits_of_mock_light_curves(self):
         tsrand = 1.0
         # Pass the optimizer function to multirun:
         pycs.sim.run.multirun("mocks", self.lcs, spl, optset="spl", tsrand=tsrand, keepopt=True)
         return
 
-    def make_plain_copies_model(self): #The histogram will give the instrinic variance
-        import pycs
-        dataresults = [
-                pycs.sim.run.collect("sims_copies_opt_spl", "blue", "Free-knot spline technique")]
+    def plot_intrinsic_variance_histograms(self): #The histogram will give the instrinic variance
+        dataresults = [pycs.sim.run.collect("sims_copies_opt_spl", "blue", "Free-knot spline technique")]
         pycs.sim.plot.hists(dataresults, r=5.0, nbins=100, showqs=False,
-                filename="fig_intrinsicvariance.pdf", dataout=True)
+                            filename="fig_intrinsicvariance.pdf", dataout=True)
         return
-    #=========================================================Error Analysis
+
+    #========================================================= Error Analysis
+
     def error_summary(self):
-        import pycs
         simresults = [
-                      pycs.sim.run.collect("sims_mocks_opt_spl", "blue", "Free-knot spline technique")
-        ]
-        pycs.sim.plot.measvstrue(simresults, errorrange=3.5, r=5.0, nbins = 1, binclip=True, binclipr=20.0, #Creates error bars
-                plotpoints=False, filename="fig_measvstrue.pdf", dataout=True)
+                      pycs.sim.run.collect("sims_mocks_opt_spl", "blue", "Free-knot spline technique")]
+        # Nice to replace self.time_delays with a version including error bars here...
+        # Maybe write out the "samples" for post-processing! Could also make a corner plot...
+        # Compare measured time delays with truth:
+        pycs.sim.plot.measvstrue(simresults, errorrange=3.5, r=5.0, nbins = 1, binclip=True, binclipr=20.0,
+                                 plotpoints=False, filename="fig_measvstrue.pdf", dataout=True)
+        # Plot covariances between delays:
         pycs.sim.plot.covplot(simresults, filename="fig_covplot.pdf")
+        # Create a summary plot (of error bars and relationship bewtween measurements):
         spl = (pycs.gen.util.readpickle("sims_copies_opt_spl_delays.pkl"),
                pycs.gen.util.readpickle("sims_mocks_opt_spl_errorbars.pkl"))
-        pycs.sim.plot.newdelayplot([spl], rplot=6.0, displaytext=True,      #Creates a summary (of error bars and relationship bewtween measurements) plot
+        # One last plot:
+        pycs.sim.plot.newdelayplot([spl], rplot=6.0, displaytext=True,
                 filename = "fig_delays.pdf", refshifts=[{"colour":"gray", "shifts":(0, -5, -20, -70)}])
         return
 
     #=====================================================Complete Error Analysis
+
     def estimate_uncertainties(self,n=None,npkl=None):
-        if self.agn is None:
-            print ("The spline has not been defined yet.")
-            return
         self.delete_old_files()
         self.make_plain_copies(n=n,npkl=npkl)
         self.make_mock_light_curves(n=n,npkl=npkl)
-        #Add in an option to use regdiff and disp
-        self.make_plain_copies_spline_model_fits()
-        self.make_mock_light_curves_spline_model_fits()
-        self.make_plain_copies_model()
+        # Add in an option to use regdiff and disp here?
+        self.make_spline_model_fits_of_plain_copies()
+        self.make_spline_model_fits_of_mock_light_curves()
+        self.plot_intrinsic_variance_histograms()
         self.error_summary()
         return
-    
+
     def find_intrinsic_variance(self,n=None,npkl=None):
         self.make_plain_copies(n=n,npkl=npkl)
-        self.make_plain_copies_model_fits()
-        self.make_plain_copies_model()
+        self.make_spline_model_fits_of_plain_copies()
+        self.plot_intrinsic_variance_histograms()
         return
 
+    def report_time_delays(self):
+        print("Time Delays:")
+        self.time_delays = pycs.gen.lc.getnicetimedelays(self.lcs, separator="\n", sorted=True)
+        print(self.time_delays)
+        return
 
 # ==============================================================================
 # End of the SLTimer class.
 # ==============================================================================
 
-# Optimizer functions (could go in "optimize.py" instead)
+# Optimizer functions (could go in "optimize.py" instead?)
 
 def spl(lcs):
-    import pycs
     spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50)
     spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30)
     spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20)
     return spline
-
-
-
-

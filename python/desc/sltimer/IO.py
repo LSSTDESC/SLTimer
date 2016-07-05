@@ -12,10 +12,10 @@ def read_in_rdb_data(datafile):
 
 def read_in_tdc2_data(datafile):
     lcs = [
-            tdc2import(datafile, 'A', 'flux_A', 'flux_A_err', "Trial"),
-            tdc2import(datafile, 'B', 'flux_B', 'flux_B_err', "Trial"),
-            tdc2import(datafile, 'C', 'flux_C', 'flux_C_err', "Trial"),
-            tdc2import(datafile, 'D', 'flux_D', 'flux_D_err', "Trial"),
+            tdc2import(datafile, 'A', 'flux_A', 'fluxerr_A', "Trial"),
+            tdc2import(datafile, 'B', 'flux_B', 'fluxerr_B', "Trial"),
+            tdc2import(datafile, 'C', 'flux_C', 'fluxerr_C', "Trial"),
+            tdc2import(datafile, 'D', 'flux_D', 'fluxerr_D', "Trial"),
             ]
     return lcs
     

@@ -23,12 +23,13 @@ class SLTimer(object):
         self.lcs = None
         return
 
-    def download(self, url, format='rdb'):
+    def download(self, url, format='rdb', and_read=False):
         self.datafile = url.split('/')[-1]
         if not os.path.isfile(self.datafile):
             urllib.urlretrieve(url, self.datafile)
         print 'Downloaded datafile:', url
-        self.read_in(format=format)
+        if and_read:
+            self.read_in(format=format)
         return
 
     def read_in(self, format=None):

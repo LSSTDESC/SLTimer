@@ -15,10 +15,10 @@ def read_in_rdb_data(datafile):
 
 def read_in_tdc2_data(datafile):
     lcs = [
-            tdc2import(datafile, 'A', 'flux_A', 'flux_A_err', "Trial"),
-            tdc2import(datafile, 'B', 'flux_B', 'flux_B_err', "Trial"),
-            tdc2import(datafile, 'C', 'flux_C', 'flux_C_err', "Trial"),
-            tdc2import(datafile, 'D', 'flux_D', 'flux_D_err', "Trial"),
+            tdc2import(datafile, 'A', 'flux_A', 'flux_A_err', "Image", units='nmgy'),
+            tdc2import(datafile, 'B', 'flux_B', 'flux_B_err', "Image", units='nmgy'),
+            tdc2import(datafile, 'C', 'flux_C', 'flux_C_err', "Image", units='nmgy'),
+            tdc2import(datafile, 'D', 'flux_D', 'flux_D_err', "Image", units='nmgy'),
             ]
     return lcs
     
@@ -68,14 +68,13 @@ def factory(jds, mags, magerrs=None, telescopename="Unknown", object="Unknown", 
         
     newlc.sort() # not sure if this is needed / should be there
         
-    newlc.validate()
+    #newlc.validate()
         
     if verbose: print "New lightcurve %s with %i points" % (str(newlc), len(newlc.jds))
     return newlc
 
 
-
-def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=None, propertycols=None, telescopename="Unknown", object="Unknown", plotcolour="red", verbose = True):
+def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=None, propertycols=None, telescopename="Unknown", object="Unknown", plotcolour="red", verbose = True, units='ABmags'):
 
     """
     The general form of file reading. We read only one lightcurve object.
@@ -127,9 +126,17 @@ def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=N
 
         # Now, extend data arrays using elements of this row:
         jds.append(float(elements[jdcol-1]))
-        mags.append(float(elements[magcol-1]))
-        magerrs.append(float(elements[errcol-1]))
-        
+        x,xerr = float(elements[magcol-1]), float(elements[errcol-1])
+        if units=='ABmags':
+            mags.append(x)
+            magerrs.append(xerr)
+        elif units=='nmgy':
+            m,merr = flux2magnitude(x,xerr)
+            mags.append(m)
+            magerrs.append(merr)
+        else:
+            raise RuntimeError, "Unknown units '%s'\n" % (units)
+
         # Also append flag array, as required:
         if flagcol != None :
             strflag = str(elements[flagcol-1])
@@ -158,11 +165,20 @@ def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=N
     commentcols = "(%i, %i, %i)" % (jdcol, magcol, errcol)
     newlc.commentlist.insert(0, "Imported from %s, columns %s" % (os.path.basename(filepath), commentcols))
     if verbose: print "%s with %i points imported (%i of them masked)." % (str(newlc), len(newlc.jds), nbmask)
-    
     return newlc
 
+def flux2magnitude(x,xerr):
+    m = 22.5 - 2.5*np.log10(x)
+    x_lower, x_upper = x - xerr, x + xerr
+    if x_lower < 0 or x < 0:
+        m=99.0
+        merr=99.0
+    else:
+        merr = 22.5 - 2.5*np.log10(xerr)
+    return m,merr
 
-def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flux_err", telescopename="Unknown", plotcolour="red", mhjdcolname="MJD", flagcolname = None, propertycolnames = ["band"], verbose = True):
+
+def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flux_err", telescopename="Unknown", plotcolour="red", mhjdcolname="MJD", flagcolname = None, propertycolnames = ["band"], verbose = True, units='ABmags'):
     """
     The relaxed way to import lightcurves, especially those from cosmouline, provided they come as rdb files.
     Don't care about column indices, just give the column headers that you want to read.
@@ -216,7 +232,7 @@ def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flu
     else:
         propertycols = None
 
-    newlc = flexibleimport(filepath, jdcol=jdcol, magcol=magcol, errcol=errcol, startline=20, flagcol=flagcol, propertycols=propertycols, telescopename=telescopename, object=object, verbose=verbose)
+    newlc = flexibleimport(filepath, jdcol=jdcol, magcol=magcol, errcol=errcol, startline=20, flagcol=flagcol, propertycols=propertycols, telescopename=telescopename, object=object, verbose=verbose, units=units)
     newlc.plotcolour = plotcolour
     return newlc
 

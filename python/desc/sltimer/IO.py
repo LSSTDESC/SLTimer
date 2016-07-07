@@ -174,9 +174,11 @@ def flux2magnitude(x,xerr):
         m=99.0
         merr=99.0
     else:
-        merr = 22.5 - 2.5*np.log10(xerr)
+        m_upper = 22.5 - 2.5*np.log10(x_lower)
+        m_lower = 22.5 - 2.5*np.log10(x_upper)
+        merr = (m_upper - m_lower)/2
+        print("m_upper, m_lower, merr = ",m_upper,m_lower,merr)
     return m,merr
-
 
 def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flux_err", telescopename="Unknown", plotcolour="red", mhjdcolname="MJD", flagcolname = None, propertycolnames = ["band"], verbose = True, units='ABmags'):
     """
@@ -251,6 +253,7 @@ def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flu
 #As input get an array  flux inputs and flux errors; return as an array the mag/magerror; code: mag, mag error = mag, mag error lc.mag
 #fluxes will be stored in an array; lc.mag, lc.magerror --> could act on the object; lightcurve = convert flux to mag
 #--readin needs to be able to do this when the; readintdc2data will call fleximport; have it call tdc2import
+
 Whitening:
 Offset in magnitude; factor of flux; comes from a number of place: magnitudes measure faintness, expect g band pts to be below r band pts; there is a constant factor
 Turn the multi-filter light curve into effectively a single light curve; w band (for whitened); get rid of the offset, Mean of the r-band; then mean of the g-band; that distance is the difference between g and r; divide by two; subtract the higher pts by that; then bring the bottom by that; this will be the w-band

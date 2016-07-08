@@ -42,12 +42,12 @@ class SLTimer(object):
 
     #========================================================== Plotting light curves
 
-    def display_light_curves(self,filename=None,jdrange=(None,None)):
+    def display_light_curves(self,filename=None,jdrange=(None)):
         pycs.gen.mrg.colourise(self.lcs)
         # Replace the following with an optional input list of shifts
-        # lcs[1].shifttime(-5.0)
-        # lcs[2].shifttime(-20.0)
-        # lcs[3].shifttime(-70.0)
+        #lcs[1].shifttime(-5.0)
+        #lcs[2].shifttime(-20.0)
+        #lcs[3].shifttime(-70.0)
         pycs.gen.lc.display(self.lcs, [self.agn], figsize=(20, 7), jdrange=jdrange)
         # lcs = pycs.gen.util
         # for l in lcs:
@@ -55,6 +55,7 @@ class SLTimer(object):
         if filename is not None:
             pycs.gen.lc.display(self.lcs, filename=filename)
         return
+
 
     #===================================================== Microlensing
 

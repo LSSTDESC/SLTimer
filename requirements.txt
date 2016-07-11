@@ -1,4 +1,5 @@
 numpy
 matplotlib
 scikit-learn
+nose
 git+git://github.com/COSMOGRAIL/PyCS.git#egg=pycs

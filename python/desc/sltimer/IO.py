@@ -193,21 +193,32 @@ def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flu
     newlc.plotcolour = plotcolour
     return newlc
 
-"""
 def whiten(lcs):
-    #filters = np.array([])
+    filters = np.array([])
+    for k in range(100):
+        filters = np.append(filters,lcs[0].properties[k]['band'])
+    for item in (np.unique(filters)):
+        index = np.where(filters == item)
+        print len(index)
+        mean_sum = (np.mean(lcs[0].mags[index])/len(index)
+    print mean_sum
+    #    return
+
+
+    """
     for item in lcs[0:4]:
-        print ('item',woo)
+        item.shifttime(mean.sym)
+    lcs[1].shifttime(-5.0)
+    lcs[2].shifttime(-20.0)
+    lcs[3].shifttime(-70.0)
 
-        '''
-        for k in range(100):
-            filters = np.append(filters,lcs[].properties[k]['band'])
-            print(filters)
+    #for item in lcs[0:4]:
+    #print('item= %s') % item
+    #length = len(properties)
+
     return
-            index = np.where(filters == 'u')
-            print(filters[index],lcs[0].mags[index])
-            Image_A_u_band_mean = (np.mean(lcs[0].mags))
-    #print(np.unique(filters))
 
+            #print(filters[index],lcs[0].mags[index],np.mean(lcs[0].mags))
     return lcs
-"""
+    #print(np.unique(filters))
+    """

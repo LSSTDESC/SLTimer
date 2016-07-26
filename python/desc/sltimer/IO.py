@@ -201,24 +201,3 @@ def whiten(lcs):
         index = np.where(filters == item)
         print len(index)
         mean_sum = (np.mean(lcs[0].mags[index])/len(index)
-    print mean_sum
-    #    return
-
-
-    """
-    for item in lcs[0:4]:
-        item.shifttime(mean.sym)
-    lcs[1].shifttime(-5.0)
-    lcs[2].shifttime(-20.0)
-    lcs[3].shifttime(-70.0)
-
-    #for item in lcs[0:4]:
-    #print('item= %s') % item
-    #length = len(properties)
-
-    return
-
-            #print(filters[index],lcs[0].mags[index],np.mean(lcs[0].mags))
-    return lcs
-    #print(np.unique(filters))
-    """

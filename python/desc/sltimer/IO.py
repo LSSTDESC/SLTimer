@@ -6,6 +6,10 @@ from pycs.gen.lc import factory
 __all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'tdc2import', 'factory', 'flexibleimport','flux2magnitude']
 
 def read_in_rdb_data(datafile):
+    """
+    Reads in the datafiles in the rdb format.
+    This format is used in the original PyCS tutorial.
+    """
     lcs =  [
             pycs.gen.lc.rdbimport(datafile, 'A', 'mag_A', 'magerr_A', "Trial"),
             pycs.gen.lc.rdbimport(datafile, 'B', 'mag_B', 'magerr_B', "Trial"),
@@ -14,14 +18,19 @@ def read_in_rdb_data(datafile):
             ]
     return lcs
 
-def read_in_tdc2_data(datafile):
+def read_in_tdc2_data(datafile,whiten=None):
+    """
+    Reads in the datafiles that will be used for the Time Delay Challenge 2.
+    Has an option to read in data from multiple filters
+    """
     lcs = [
             tdc2import(datafile, 'A', 'flux_A', 'flux_A_err', "Image", units='nmgy'),
             tdc2import(datafile, 'B', 'flux_B', 'flux_B_err', "Image", units='nmgy'),
             tdc2import(datafile, 'C', 'flux_C', 'flux_C_err', "Image", units='nmgy'),
             tdc2import(datafile, 'D', 'flux_D', 'flux_D_err', "Image", units='nmgy'),
             ]
-    whiten(lcs)
+    if whiten is not None:
+        whiten(lcs) #Used to whiten the lightcurves, allows to read in data from multiple filters.
     return lcs
 
 #===================================================================unfinished
@@ -67,8 +76,8 @@ def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=N
         # Check the consistency of the number of columns:
         elements = line.split() # line is a string, elements is a list of strings
 
-        if elsperline != None:
-            if len(elements) != elsperline:
+        if elsperline is not None:
+            if len(elements) is not elsperline:
                 raise RuntimeError, "Parsing error in line %i, check columns : \n%s" % (i+startline, repr(line))
 
         elsperline = len(elements)
@@ -194,10 +203,40 @@ def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flu
     return newlc
 
 def whiten(lcs):
+    """
+    Function to whiten the lightcurve data in the case of multiple filters.
+    In Progress.
+    """
     filters = np.array([])
-    for k in range(100):
+    for k in range(1004):
         filters = np.append(filters,lcs[0].properties[k]['band'])
     for item in (np.unique(filters)):
         index = np.where(filters == item)
-        print len(index)
-        mean_sum = (np.mean(lcs[0].mags[index])/len(index)
+        indiv_mean_sum = (np.mean(lcs[0].mags[index]))
+        #put all the indiv. means in one array
+    total_sum = indiv_mean_sum/6
+        total_sum - indiv_mean_sum = difference
+        if difference > 0:
+            #add that difference to the shift of the lcs
+        else:
+            #subtract that difference to the shift of the lcs
+    return
+
+    """"
+    for item in lcs[0:4]:
+        item.shifttime(mean.sym)
+
+    lcs[1].shifttime(-5.0)
+    lcs[2].shifttime(-20.0)
+    lcs[3].shifttime(-70.0)
+
+    #for item in lcs[0:4]:
+    #print('item= %s') % item
+    #length = len(properties)
+
+    return
+
+    #print(filters[index],lcs[0].mags[index],np.mean(lcs[0].mags))
+    return lcs
+    #print(np.unique(filters))
+"""

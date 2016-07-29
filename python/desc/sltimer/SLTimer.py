@@ -24,6 +24,9 @@ class SLTimer(object):
         return
 
     def download(self, url, format='rdb', and_read=False):
+        '''
+        Download method to get the datafile from a url.
+        '''
         self.datafile = url.split('/')[-1]
         if not os.path.isfile(self.datafile):
             urllib.urlretrieve(url, self.datafile)
@@ -33,6 +36,9 @@ class SLTimer(object):
         return
 
     def read_in(self, format=None):
+        '''
+        Read in method to specify which type of datafile will be read in.
+        '''
         if format == 'rdb': self.lcs = read_in_rdb_data(self.datafile)
         if format == 'tdc2': self.lcs = read_in_tdc2_data(self.datafile)
         return
@@ -43,6 +49,9 @@ class SLTimer(object):
     #========================================================== Plotting light curves
 
     def display_light_curves(self,filename=None,jdrange=(None)):
+        '''
+        To display the lightcurves.
+        '''
         pycs.gen.mrg.colourise(self.lcs)
         # Replace the following with an optional input list of shifts
         #lcs[1].shifttime(-5.0)
@@ -60,12 +69,18 @@ class SLTimer(object):
     #===================================================== Microlensing
 
     def add_polynomial_microlensing(self):
+        '''
+        To add polynomial microlensing to each lightcurve.
+        '''
         pycs.gen.polyml.addtolc(self.lcs[1], nparams=2, autoseasonsgap=600.0)
         pycs.gen.polyml.addtolc(self.lcs[2], nparams=3, autoseasonsgap=600.0)
         pycs.gen.polyml.addtolc(self.lcs[3], nparams=3, autoseasonsgap=600.0)
         return
 
     def add_spline_microlensing(self):
+        '''
+        To add spline microlensing to each light curve.
+        '''
         pycs.gen.splml.addtolc(self.lcs[0], knotstep=150)
         pycs.gen.splml.addtolc(self.lcs[1], knotstep=150)
         pycs.gen.splml.addtolc(self.lcs[2], knotstep=150)
@@ -115,6 +130,9 @@ class SLTimer(object):
     #===================================================== Resimulating the Data
 
     def delete_old_files(self):
+        '''
+        To delete the old files from prior runs through the data.
+        '''
         subprocess.call('rm -rfv sims_copies sims_mocks', shell=True)
         subprocess.call('rm -rfv sims_copies_opt_spl sims_copies_opt_disp sims_copies_opt_regdiff', shell=True)
         subprocess.call('rm -rfv sims_mocks_opt_spl sims_mocks_opt_disp sims_mocks_opt_regdiff', shell=True)
@@ -122,6 +140,9 @@ class SLTimer(object):
         return
 
     def make_plain_copies(self,n=None,npkl=None):
+        '''
+        To make copies of the data.
+        '''
         Ncopies = n*npkl
         print("Making",Ncopies,"copies of the original dataset:")
         pycs.sim.draw.multidraw(self.lcs, onlycopy=True, n=n, npkl=npkl, simset="copies")
@@ -129,6 +150,9 @@ class SLTimer(object):
 
     def make_mock_light_curves(self,n=None,npkl=None):
         # (modellcs, modelspline) = pycs.gen.util.readpickle("optspline.pkl")
+        '''
+        To make mock lightcurves to provide an basis for the estimate uncertainties.
+        '''
         modellcs, modelspline = self.lcs, self.agn
         def Atweakml(xlcs):
             return pycs.sim.twk.tweakml(xlcs, beta=-1.5, sigma=0.25, fmin=1/500.0, fmax=None, psplot=False)
@@ -159,7 +183,7 @@ class SLTimer(object):
         pycs.sim.run.multirun("mocks", self.lcs, spl, optset="spl", tsrand=tsrand, keepopt=True)
         return
 
-    def plot_intrinsic_variance_histograms(self): #The histogram will give the instrinic variance
+    def plot_intrinsic_variance_histograms(self): #The histogram will give the instrinsic variance
         dataresults = [pycs.sim.run.collect("sims_copies_opt_spl", "blue", "Free-knot spline technique")]
         pycs.sim.plot.hists(dataresults, r=5.0, nbins=100, showqs=False,
                             filename="fig_intrinsicvariance.pdf", dataout=True)
@@ -191,7 +215,7 @@ class SLTimer(object):
         self.delete_old_files()
         self.make_plain_copies(n=n,npkl=npkl)
         self.make_mock_light_curves(n=n,npkl=npkl)
-        # Add in an option to use regdiff and disp here?
+        # Add in an option to use regdiff and disp here
         self.make_spline_model_fits_of_plain_copies()
         self.make_spline_model_fits_of_mock_light_curves()
         self.plot_intrinsic_variance_histograms()

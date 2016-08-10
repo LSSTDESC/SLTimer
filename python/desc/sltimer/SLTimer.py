@@ -1,6 +1,6 @@
-# ==============================================================================
+# ======================================================================
 # License info here?
-# ==============================================================================
+# ======================================================================
 from __future__ import absolute_import
 import os, urllib
 import subprocess
@@ -65,6 +65,9 @@ class SLTimer(object):
             pycs.gen.lc.display(self.lcs, filename=filename)
         return
 
+    def whiten(self):
+        self.lcs = whiten(self.lcs)
+        return
 
     #===================================================== Microlensing
 
@@ -94,9 +97,9 @@ class SLTimer(object):
         Provides both polynomial and spline time delays.
         '''
         if method == 'pycs':
-            print("You are using the pycs method.")
+            print "You are using the pycs method."
         else:
-            print("The only available method is 'pycs' - exiting.")
+            print "The only available method is 'pycs' - exiting."
             return
 
         # Tell the lightcurves that their model is going to include microlensing:
@@ -144,7 +147,7 @@ class SLTimer(object):
         To make copies of the data.
         '''
         Ncopies = n*npkl
-        print("Making",Ncopies,"copies of the original dataset:")
+        print "Making",Ncopies,"copies of the original dataset:"
         pycs.sim.draw.multidraw(self.lcs, onlycopy=True, n=n, npkl=npkl, simset="copies")
         return
 
@@ -164,7 +167,7 @@ class SLTimer(object):
             return pycs.sim.twk.tweakml(xlcs, beta=-0.0, sigma=4.5, fmin=1/500.0, fmax=None, psplot=False)
         Nmocks = n*npkl
         truetsr = 8.0
-        print("Making",Nmocks,"synthetic datasets, varying time delays by +/-",truetsr/2.0,"days")
+        print "Making",Nmocks,"synthetic datasets, varying time delays by +/-",truetsr/2.0,"days"
         pycs.sim.draw.saveresiduals(modellcs, modelspline)
         pycs.sim.draw.multidraw(modellcs, modelspline, n=n, npkl=npkl, simset="mocks",
                 truetsr=truetsr, tweakml=[Atweakml, Btweakml, Ctweakml, Dtweakml])
@@ -229,14 +232,14 @@ class SLTimer(object):
         return
 
     def report_time_delays(self):
-        print("Time Delays:")
+        print "Time Delays:"
         self.time_delays = pycs.gen.lc.getnicetimedelays(self.lcs, separator="\n", sorted=True)
-        print(self.time_delays)
+        print self.time_delays
         return
 
-# ==============================================================================
+# ======================================================================
 # End of the SLTimer class.
-# ==============================================================================
+# ======================================================================
 
 # Optimizer functions (could go in "optimize.py" instead?)
 

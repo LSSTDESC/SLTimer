@@ -3,7 +3,7 @@ import os
 import numpy as np
 from pycs.gen.lc import factory
 
-__all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'tdc2import', 'factory', 'flexibleimport','flux2magnitude']
+__all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'tdc2import', 'factory', 'flexibleimport','flux2magnitude','whiten']
 
 def read_in_rdb_data(datafile):
     """
@@ -18,10 +18,11 @@ def read_in_rdb_data(datafile):
             ]
     return lcs
 
-def read_in_tdc2_data(datafile,whiten=None):
+def read_in_tdc2_data(datafile,whiten=False):
     """
-    Reads in the datafiles that will be used for the Time Delay Challenge 2.
-    Has an option to read in data from multiple filters
+    Reads in the datafiles that will be used for the Time Delay
+    Challenge 2. Has an option to take the data from multiple filters
+    and "whiten" it to look like it came from a single filter.
     """
     lcs = [
             tdc2import(datafile, 'A', 'flux_A', 'flux_A_err', "Image", units='nmgy'),
@@ -29,8 +30,8 @@ def read_in_tdc2_data(datafile,whiten=None):
             tdc2import(datafile, 'C', 'flux_C', 'flux_C_err', "Image", units='nmgy'),
             tdc2import(datafile, 'D', 'flux_D', 'flux_D_err', "Image", units='nmgy'),
             ]
-    if whiten is not None:
-        whiten(lcs) #Used to whiten the lightcurves, allows to read in data from multiple filters.
+    if whiten:
+        whiten(lcs)
     return lcs
 
 #===================================================================unfinished
@@ -65,12 +66,12 @@ def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=N
 
         # Check for header lines:
         if line[0] == "#":
-            print("Skipping header line %i : %s" % (i+startline, repr(line)))
+            print "Skipping header line %i : %s" % (i+startline, repr(line))
             continue
 
         # Check for "empty" lines - this does not seem to work correctly...
         if len(line.split()) < 5:
-            print("Skipping empty line %i : %s" % (i+startline, repr(line)))
+            print "Skipping empty line %i : %s" % (i+startline, repr(line))
             continue
 
         # Check the consistency of the number of columns:
@@ -202,41 +203,67 @@ def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flu
     newlc.plotcolour = plotcolour
     return newlc
 
+
+def mean_and_scatter(lcs):
+    """
+    Simple function to measure mean and standard deviation of eachlight
+    curve in the list.
+    """
+    Nim = len(lcs)
+    names = ['A', 'B', 'C', 'D']
+    mean, scatter = dict(), dict()
+    for j in range(Nim):
+        mean[names[j]] = np.mean(lcs[j].mags)
+        scatter[names[j]] = np.std(lcs[j].mags)
+    return mean,scatter
+
+
 def whiten(lcs):
     """
-    Function to whiten the lightcurve data in the case of multiple filters.
-    In Progress.
+    Function to whiten the lightcurve data in the case of multiple
+    filters.
     """
+    mu, sigma = mean_and_scatter(lcs)
+    print "whiten: before whitening, means =", mu
+    print "whiten: before whitening, scatters =", sigma
+
+    # How many different images do we have?
+    Nim = len(lcs)
+
+    # Get list of observation filters, and the names of the bands:
     filters = np.array([])
-    for k in range(1004):
+    Nobs = len(lcs[0].properties)
+    for k in range(Nobs):
         filters = np.append(filters,lcs[0].properties[k]['band'])
-    for item in (np.unique(filters)):
-        index = np.where(filters == item)
-        indiv_mean_sum = (np.mean(lcs[0].mags[index]))
-        #put all the indiv. means in one array
-    total_sum = indiv_mean_sum/6
-        total_sum - indiv_mean_sum = difference
-        if difference > 0:
-            #add that difference to the shift of the lcs
-        else:
-            #subtract that difference to the shift of the lcs
-    return
+    bands = np.unique(filters)
+    print "whiten: detected bands:",str(bands)
 
-    """"
-    for item in lcs[0:4]:
-        item.shifttime(mean.sym)
+    # Which observations were taken in which band?
+    index = dict()
+    for band in bands:
+        index[band] = np.where(filters == band)[0]
 
-    lcs[1].shifttime(-5.0)
-    lcs[2].shifttime(-20.0)
-    lcs[3].shifttime(-70.0)
+    # Loop over images:
+    for j in range(Nim):
 
-    #for item in lcs[0:4]:
-    #print('item= %s') % item
-    #length = len(properties)
+        # Find mean mag in each filter's light curve:
+        indiv_mean = dict()
+        for band in bands:
+            indiv_mean[band] = np.mean(lcs[j].mags[index[band]])
 
-    return
+        # Now find the overall mean, and compute each filter's offsets:
+        overall_mean = np.mean(lcs[j].mags)
 
-    #print(filters[index],lcs[0].mags[index],np.mean(lcs[0].mags))
+        offset = dict()
+        for band in bands:
+            offset[band] = indiv_mean[band] - overall_mean
+
+        # Finally, apply the offsets:
+        for band in bands:
+            lcs[j].mags[index[band]] -= offset[band]
+
+    mu, sigma = mean_and_scatter(lcs)
+    print "whiten: after whitening, means =", mu
+    print "whiten: after whitening, scatters =", sigma
+
     return lcs
-    #print(np.unique(filters))
-"""

@@ -66,6 +66,8 @@ target/
 
 # Input and output data, plots and pickles
 trialcurves.txt
+tdc2-gateway-example.txt
+
 *.pkl
 fig*pdf
 out*txt

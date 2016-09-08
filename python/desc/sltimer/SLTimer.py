@@ -35,12 +35,24 @@ class SLTimer(object):
             self.read_in(format=format)
         return
 
-    def read_in(self, format=None):
+    def read_in(self, datafile='self', format=None):
         '''
         Read in method to specify which type of datafile will be read in.
         '''
-        if format == 'rdb': self.lcs = read_in_rdb_data(self.datafile)
-        if format == 'tdc2': self.lcs = read_in_tdc2_data(self.datafile)
+        if datafile == 'self':
+            pass
+        else:
+            self.datafile = datafile
+
+        if format == 'rdb':
+            self.lcs = read_in_rdb_data(self.datafile)
+        elif format == 'tdc2':
+            self.lcs = read_in_tdc2_data(self.datafile)
+        else:
+            raise ValueError('Unrecognized or null format '+str(format))
+
+        self.Nim = len(self.lcs)
+
         return
 
     def optimize_spline_model(self):
@@ -75,9 +87,15 @@ class SLTimer(object):
         '''
         To add polynomial microlensing to each lightcurve.
         '''
-        pycs.gen.polyml.addtolc(self.lcs[1], nparams=2, autoseasonsgap=600.0)
-        pycs.gen.polyml.addtolc(self.lcs[2], nparams=3, autoseasonsgap=600.0)
-        pycs.gen.polyml.addtolc(self.lcs[3], nparams=3, autoseasonsgap=600.0)
+        pycs.gen.polyml.addtolc(self.lcs[0], nparams=3,
+                                autoseasonsgap=600.0)
+        pycs.gen.polyml.addtolc(self.lcs[1], nparams=3,
+                                autoseasonsgap=600.0)
+        if self.Nim == 4:
+            pycs.gen.polyml.addtolc(self.lcs[2], nparams=3,
+                                    autoseasonsgap=600.0)
+            pycs.gen.polyml.addtolc(self.lcs[3], nparams=3,
+                                    autoseasonsgap=600.0)
         return
 
     def add_spline_microlensing(self):
@@ -86,8 +104,9 @@ class SLTimer(object):
         '''
         pycs.gen.splml.addtolc(self.lcs[0], knotstep=150)
         pycs.gen.splml.addtolc(self.lcs[1], knotstep=150)
-        pycs.gen.splml.addtolc(self.lcs[2], knotstep=150)
-        pycs.gen.splml.addtolc(self.lcs[3], knotstep=150)
+        if self.Nim == 4:
+            pycs.gen.splml.addtolc(self.lcs[2], knotstep=150)
+            pycs.gen.splml.addtolc(self.lcs[3], knotstep=150)
         return
 
     #============================================= Primary workhorse method

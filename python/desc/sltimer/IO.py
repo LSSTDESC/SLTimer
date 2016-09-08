@@ -24,17 +24,28 @@ def read_in_tdc2_data(datafile,whiten=False):
     Challenge 2. Has an option to take the data from multiple filters
     and "whiten" it to look like it came from a single filter.
     """
+
+    Nim = count_images(datafile)
+
     lcs = [
-            tdc2import(datafile, 'A', 'flux_A', 'flux_A_err', "Image", units='nmgy'),
-            tdc2import(datafile, 'B', 'flux_B', 'flux_B_err', "Image", units='nmgy'),
-            tdc2import(datafile, 'C', 'flux_C', 'flux_C_err', "Image", units='nmgy'),
-            tdc2import(datafile, 'D', 'flux_D', 'flux_D_err', "Image", units='nmgy'),
-            ]
+            tdc2import(datafile, 'A', 'flux_A', 'flux_A_err',
+                       "Image", units='nmgy'),
+            tdc2import(datafile, 'B', 'flux_B', 'flux_B_err',
+                       "Image", units='nmgy')
+          ]
+
+    if Nim == 4:
+        lcs.append( tdc2import(datafile, 'C', 'flux_C', 'flux_C_err',
+                               "Image", units='nmgy') )
+        lcs.append( tdc2import(datafile, 'D', 'flux_D', 'flux_D_err',
+                               "Image", units='nmgy') )
+
     if whiten:
         whiten(lcs)
+
     return lcs
 
-#===================================================================unfinished
+# ===================================================================
 
 def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=None, propertycols=None, telescopename="Unknown", object="Unknown", plotcolour="red", verbose = True, units='ABmags'):
     """
@@ -128,6 +139,7 @@ def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=N
     if verbose: print "%s with %i points imported (%i of them masked)." % (str(newlc), len(newlc.jds), nbmask)
     return newlc
 
+
 def flux2magnitude(x,xerr):
     """
     Only used if the units are nmgy
@@ -145,34 +157,56 @@ def flux2magnitude(x,xerr):
         merr = (m_upper - m_lower)/2
     return m,merr
 
-def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flux_err", telescopename="Unknown", plotcolour="red", mhjdcolname="MJD", flagcolname = None, propertycolnames = ["band"], verbose = True, units='ABmags'):
-    """
-    A way to import lightcurves using tdc2 data files. Column indices and delimeters do not matter,
-    just provide the column headers that you want to read.
 
-    Propertycolnames is a list of column names that can be added as properties.
+def count_images(filename):
+    """
+    Determine whether a TDC2 datafile contains 2 or 4 images.
+    """
+    tdc2file = open(filename, "r")
+    lines = tdc2file.readlines()
+    tdc2file.close()
+    Ncols = len(lines[-1].split())
+    Nim = (Ncols - 2) / 2
+    if Nim == 2 or Nim == 4:
+        pass
+    else:
+        raise ValueError("Unexpected number of images ",Nim)
+    return Nim
+
+
+def tdc2import(filepath, object="Unknown", magcolname="flux",
+               magerrcolname="flux_err", telescopename="Unknown",
+               plotcolour="red", mhjdcolname="MJD", flagcolname = None,
+               propertycolnames = ["band"], verbose = True,
+               units='ABmags'):
+    """
+    A way to import lightcurves using tdc2 data files. Column indices
+    and delimeters do not matter, just provide the column headers that you want to read.
+
+    Propertycolnames is a list of column names that can be added as
+    properties.
     Possible settings :
     None : Will not import any properties
     ["property1", "property2"] : Provide a list of properties to import.
 
-    The default column names are "mhjd", "mag", "magerr", "mask".
+    The default column names are "MJD", "flux", "flux_err", "mask".
 
     Flexibleimport is used under the hood.
     """
     if verbose : print "Checking header of \"%s\"..." % (os.path.basename(filepath))
-    rdbfile = open(filepath, "r")
-    rdbfilelines = rdbfile.readlines()
-    rdbfile.close()
-    headers = rdbfilelines[18].split() #--> code has to pass the headers and extract the headers; read the values into a dictionary
-    #underlines = rdbfilelines[1].split()
-    #if map(len, headers) != map(len, underlines): --> find another test
-    #raise RuntimeError, "Error in parsing headers"
-    #headerindices = np.array(range(len(headers))) + 1 # +1 as we use human convention in flexibleimport
-
-    # We build the default property names :
-    #if propertycolnames == "lcmanip": # Then we put it the default set, but only if available.
-        #propertycolnames = set(["telescope", "fwhm", "ellipticity", "airmass", "relskylevel", "normcoeff", "nbimg"]).intersection(set(headers))
-    #if propertycolnames == ["band"]:
+    tdc2file = open(filepath, "r")
+    tdc2filelines = tdc2file.readlines()
+    tdc2file.close()
+    # Loop over lines until we reach the last one that starts with a '#'
+    firstchar, k = '#', 0
+    while firstchar == '#':
+        firstchar = tdc2filelines[k][0]
+        k += 1
+    headers = tdc2filelines[k-2].split()
+    # print "headers: ", headers
+    # e.g.
+    # headers:  ['#', 'MJD', 'band', 'flux_A', 'flux_A_err', 'flux_B', 'flux_B_err']
+    # Note the hash mark: this makes the MJD column number 1 already
 
     # We check if the headers you want are available :
     checknames = [mhjdcolname, magcolname, magerrcolname]
@@ -183,9 +217,9 @@ def tdc2import(filepath, object="Unknown", magcolname="flux", magerrcolname="flu
         if name not in headers:
             raise RuntimeError, 'I cannot find a column named "%s" in your file !' % (name)
 
-    jdcol = headers.index(mhjdcolname) + 1 # +1 as we use human convention in flexibleimport
-    magcol = headers.index(magcolname) + 1
-    errcol = headers.index(magerrcolname) + 1
+    jdcol = headers.index(mhjdcolname) # No need to +1
+    magcol = headers.index(magcolname) # No need to +1
+    errcol = headers.index(magerrcolname) # No need to +1
 
     if flagcolname is not None :
         flagcol = headers.index(flagcolname) + 1

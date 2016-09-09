@@ -149,6 +149,40 @@ class SLTimer(object):
         else:
             return
 
+
+    def initialize_time_delays(self, method=None, pars=None):
+        '''
+        Initialize the curve shifts by specifying 1 or 3 time delays.
+        '''
+        if method is None:
+            dt = {'AB':0.0}
+            if self.Nim == 4:
+                dt['AC'] = 0.0
+                dt['AD'] = 0.0
+
+        elif method == 'guess':
+            dt = pars
+            assert pars is not None
+            assert len(dt) == (self.Nim - 1)
+            assert type(dt) == dict
+
+        else:
+            raise ValueError("Unrecognized initialization method '"+method+"'")
+
+        # Set the shifts of each light curve object in lcs:
+        # All lenses:
+        self.lcs[1].shifttime(dt['AB'])
+        # Quads only:
+        if self.Nim == 4:
+            self.lcs[2].shifttime(dt['AC'])
+            self.lcs[3].shifttime(dt['AD'])
+
+        # Report that shifting has occurred, and report time delays:
+        print "Initialization completed, using method '"+method+"'"
+        self.report_time_delays()
+
+        return
+
     #===================================================== Resimulating the Data
 
     def delete_old_files(self):

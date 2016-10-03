@@ -153,22 +153,23 @@ class SLTimer(object):
     #===================================================== Evaluate the fitting
 
     def computeLikelihood_MC(self,nsample=1000,nprocess=5,\
-							rangeList=[[-100,100],[-100,100],[-100,100]]):
+	rangeList=[[-100,100],[-100,100],[-100,100]]):
        	'''
         compute the likelihood by Montecarlo method
         '''
-        import copy
         import corner
         from multiprocessing import Pool
         from functools import partial
+	import matplotlib
+	# Force matplotlib to not use any Xwindows backend.
+	matplotlib.use('Agg')
         ndim = 3
         dAB=np.random.uniform(rangeList[0][0],rangeList[0][1],nsample)
         dAC=np.random.uniform(rangeList[1][0],rangeList[1][1],nsample)
         dAD=np.random.uniform(rangeList[2][0],rangeList[2][1],nsample)
         sample=np.vstack((dAB,dAC,dAD)).T
-        lcs=copy.deepcopy(self.lcs)
         p = Pool(processes=nprocess)
-        chisquare=np.array(p.map(partial(getChiSquare,lcs),sample))
+        chisquare=np.array(p.map(partial(getChiSquare,self.lcs),sample))
         weight=np.exp((chisquare-np.max(chisquare)))
         print("weighted time delays (dAB,dAC,dAD)(days) :",weight.T.dot(sample))
         fig=corner.corner(sample,labels=[r'$\Delta t_{AB}(days)$',r'$\Delta t_{AC}(days)$',r'$\Delta t_{AD}(days)$'],
@@ -301,7 +302,9 @@ def splNoShift(lcs):
     spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20,verbose=False,shifttime=False)
     return spline
 ####To compute the chisquare
-def getChiSquare(lcs,delay):
+def getChiSquare(lcs_original,delay):
+    import copy
+    lcs=copy.deepcopy(lcs_original)
     for l in lcs:
         l.resetshifts()
         l.resetml()

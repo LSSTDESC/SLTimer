@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import os, urllib
 import subprocess
 import pycs
+import numpy as np
 from .IO import *
 
 __all__ = ['SLTimer', 'spl']
@@ -148,6 +149,33 @@ class SLTimer(object):
             self.find_intrinsic_variance()
         else:
             return
+    
+    #===================================================== Evaluate the fitting
+
+    def computeLikelihood_MC(self,nsample=1000,nprocess=5,\
+							rangeList=[[-100,100],[-100,100],[-100,100]]):
+       	'''
+        compute the likelihood by Montecarlo method
+        '''
+        import copy
+        import corner
+        from multiprocessing import Pool
+        from functools import partial
+        ndim = 3
+        dAB=np.random.uniform(rangeList[0][0],rangeList[0][1],nsample)
+        dAC=np.random.uniform(rangeList[1][0],rangeList[1][1],nsample)
+        dAD=np.random.uniform(rangeList[2][0],rangeList[2][1],nsample)
+        sample=np.vstack((dAB,dAC,dAD)).T
+        lcs=copy.deepcopy(self.lcs)
+        p = Pool(processes=nprocess)
+        chisquare=np.array(p.map(partial(getChiSquare,lcs),sample))
+        weight=np.exp((chisquare-np.max(chisquare)))
+        print("weighted time delays (dAB,dAC,dAD)(days) :",weight.T.dot(sample))
+        fig=corner.corner(sample,labels=[r'$\Delta t_{AB}(days)$',r'$\Delta t_{AC}(days)$',r'$\Delta t_{AD}(days)$'],
+                        weights=weight,plot_contours=True,
+                        plot_density=True,hist_kwargs={"log":True})
+        fig.savefig("likelihood_%s_samples.png"%nsample,)
+	
 
     #===================================================== Resimulating the Data
 
@@ -261,9 +289,27 @@ class SLTimer(object):
 # ======================================================================
 
 # Optimizer functions (could go in "optimize.py" instead?)
-
 def spl(lcs):
     spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50)
     spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30)
     spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20)
     return spline
+
+def splNoShift(lcs):
+    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50,verbose=False,shifttime=False)
+    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30,verbose=False,shifttime=False)
+    spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20,verbose=False,shifttime=False)
+    return spline
+####To compute the chisquare
+def getChiSquare(lcs,delay):
+    for l in lcs:
+        l.resetshifts()
+        l.resetml()
+    for index, l in enumerate(lcs):
+        pycs.gen.splml.addtolc(l,knotstep=150)
+        if index!=0:
+           l.timeshift=delay[index-1]
+    spline = splNoShift(lcs)
+    return spline.lastr2nostab 
+
+

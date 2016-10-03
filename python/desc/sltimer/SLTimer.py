@@ -171,11 +171,12 @@ class SLTimer(object):
         p = Pool(processes=nprocess)
         chisquare=np.array(p.map(partial(getChiSquare,self.lcs),sample))
         weight=np.exp((chisquare-np.max(chisquare)))
+	weight/=np.sum(weight)
         print("weighted time delays (dAB,dAC,dAD)(days) :",weight.T.dot(sample))
         fig=corner.corner(sample,labels=[r'$\Delta t_{AB}(days)$',r'$\Delta t_{AC}(days)$',r'$\Delta t_{AD}(days)$'],
                         weights=weight,plot_contours=True,
                         plot_density=True,hist_kwargs={"log":True})
-        fig.savefig("likelihood_%s_samples.png"%nsample,)
+        fig.savefig("likelihood_%s_samples.png"%nsample)
 	
 
     #===================================================== Resimulating the Data

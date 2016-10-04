@@ -172,9 +172,9 @@ class SLTimer(object):
         sample=np.vstack((dAB,dAC,dAD)).T
         p = Pool(processes=nprocess)
         chisquare=np.array(p.map(partial(getChiSquare,self.lcs),sample))
-        weight=np.exp((chisquare-np.max(chisquare)))
+        weight=np.exp(-0.5*(chisquare-np.min(chisquare)))
         weight/=np.sum(weight)
-        print("max chisquare,",np.max(chisquare))
+        print("min chisquare,",np.min(chisquare))
         print("weighted time delays (dAB,dAC,dAD)(days) :",weight.T.dot(sample))
         fig=corner.corner(sample,labels=[r'$\Delta t_{AB}(days)$',r'$\Delta t_{AC}(days)$',r'$\Delta t_{AD}(days)$'],
                         weights=weight,plot_contours=True,

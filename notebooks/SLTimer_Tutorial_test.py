@@ -10,4 +10,3 @@ rdbfile = 'trialcurves.txt'
 url = os.path.join(webdir, rdbfile)
 timer.download(url, and_read=True)
 timer.computeLikelihood_MC(nsample=100,nprocess=10,rangeList=[[-10,0],[-40,-30],[-80,-60]],outName="testTutorial")
-~

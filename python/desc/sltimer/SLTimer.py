@@ -153,17 +153,19 @@ class SLTimer(object):
     #===================================================== Evaluate the fitting
 
     def computeLikelihood_MC(self,nsample=1000,nprocess=5,\
-	rangeList=[[-100,100],[-100,100],[-100,100]]):
+	rangeList=None,outName=""):
        	'''
         compute the likelihood by Montecarlo method
         '''
         import corner
         from multiprocessing import Pool
         from functools import partial
-	import matplotlib
-	# Force matplotlib to not use any Xwindows backend.
-	matplotlib.use('Agg')
+        import matplotlib
+	    # Force matplotlib to not use any Xwindows backend.
+        matplotlib.use('Agg')
         ndim = 3
+        if rangeList==None:
+           rangeList=[[-100,100],[-100,100],[-100,100]]
         dAB=np.random.uniform(rangeList[0][0],rangeList[0][1],nsample)
         dAC=np.random.uniform(rangeList[1][0],rangeList[1][1],nsample)
         dAD=np.random.uniform(rangeList[2][0],rangeList[2][1],nsample)
@@ -171,12 +173,15 @@ class SLTimer(object):
         p = Pool(processes=nprocess)
         chisquare=np.array(p.map(partial(getChiSquare,self.lcs),sample))
         weight=np.exp((chisquare-np.max(chisquare)))
-	weight/=np.sum(weight)
+        weight/=np.sum(weight)
+        print("max chisquare,",np.max(chisquare))
         print("weighted time delays (dAB,dAC,dAD)(days) :",weight.T.dot(sample))
         fig=corner.corner(sample,labels=[r'$\Delta t_{AB}(days)$',r'$\Delta t_{AC}(days)$',r'$\Delta t_{AD}(days)$'],
                         weights=weight,plot_contours=True,
                         plot_density=True,hist_kwargs={"log":True})
-        fig.savefig("likelihood_%s_samples.png"%nsample)
+        np.save("%s_weight_%s_samples.npy"%(outName,nsample),weight)
+        np.save("%s_sample_%s_samples.npy"%(outName,nsample),sample)
+        fig.savefig("%s_likelihood_%s_samples.png"%(outName,nsample))
 	
 
     #===================================================== Resimulating the Data

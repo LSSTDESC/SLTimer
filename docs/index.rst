@@ -6,5 +6,8 @@ SLTimer is an aggregator to enable several different strong lens time delay esti
 API
 ---
 
-.. automodule:: SLTimer
-   :imported-members:
+.. automodule:: desc.sltimer.SLTimer
+       :members:
+
+.. automodule:: desc.sltimer.IO
+       :members:

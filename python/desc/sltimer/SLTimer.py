@@ -163,13 +163,13 @@ class SLTimer(object):
         import matplotlib
 	    # Force matplotlib to not use any Xwindows backend.
         matplotlib.use('Agg')
-        ndim = 3
+        ndim = len(self.lcs)
         if rangeList==None:
-           rangeList=[[-100,100],[-100,100],[-100,100]]
-        dAB=np.random.uniform(rangeList[0][0],rangeList[0][1],nsample)
-        dAC=np.random.uniform(rangeList[1][0],rangeList[1][1],nsample)
-        dAD=np.random.uniform(rangeList[2][0],rangeList[2][1],nsample)
-        sample=np.vstack((dAB,dAC,dAD)).T
+       	   rangeList=[[-100,100]]*(ndim-1)
+	d=[]
+	for item in xrange(ndim-1):
+          d.append(np.random.uniform(rangeList[item][0],rangeList[item][1],nsample))
+        sample=np.array(d).T
         p = Pool(processes=nprocess)
         chisquare=np.array(p.map(partial(getChiSquare,self.lcs),sample))
         weight=np.exp(-0.5*(chisquare-np.min(chisquare)))

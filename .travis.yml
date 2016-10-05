@@ -18,11 +18,24 @@ install:
   # Now we install all the rest of our python dependencies:
   - pip install -r requirements.txt
   - pip install coveralls
-  # Finally we set up SLTimer:
+  # And finally we set up SLTimer:
   - source setup/setup.sh
+  # Set up to run jupyter notebooks:
+  - sudo apt-get install texlive-latex-recommended
+  - sudo apt-get install texlive-latex-extra
+  - sudo apt-get install texlive-fonts-recommended
+  - sudo apt-get install chktex
+  - sudo apt-get install dvipng
+  - pip install --upgrade jupyter
+  - pip install nbconvert
 
 script:
+  # Run the unit tests:
   - nosetests -s --with-coverage --cover-package=desc.sltimer
+  # Run the demo notebook:
+  - jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute  notebooks/PyCS_Tutorial.ipynb
+  - jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_Tutorial.ipynb
+  - jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_TDC2_Example.ipynb
 
 after_success:
   - coveralls

@@ -111,21 +111,43 @@ class SLTimer(object):
 
     #============================================= Primary workhorse method
 
-    def estimate_time_delays(self,method='pycs',microlensing='spline',agn='spline',error=None):
+    def estimate_time_delays(self, method='pycs', microlensing='spline', agn='spline', error=None, quietly=False):
         '''
         Provides both polynomial and spline time delays.
+
+        Parameters
+        ----------
+        method: string
+            Modeling package to use (currently only `pycs` is available)
+        microlensing: string
+            Model choice for microlensing light curves
+        agn: string
+            Model choice for intrinsic AGN variability
+        error: boolean
+            Estimate errors?
+        quietly: boolean
+            Redirect output to /dev/null?
         '''
+
         if method == 'pycs':
-            print "You are using the pycs method."
+            # print "You are using the pycs method."
+            pass
         else:
             print "The only available method is 'pycs' - exiting."
             return
 
+        if quietly:
+            as_requested = {'stdout':None, 'stderr':None}
+        else:
+            as_requested = {'stdout':sys.stdout, 'stderr':sys.stderr}
+
         # Tell the lightcurves that their model is going to include microlensing:
         if microlensing == 'polynomial':
-            self.add_polynomial_microlensing()
+            with SilentOperation(**as_requested):
+                self.add_polynomial_microlensing()
         elif microlensing == 'spline':
-            self.add_spline_microlensing()
+            with SilentOperation(**as_requested):
+                self.add_spline_microlensing()
         else:
             pass
         # Keep a record:
@@ -133,19 +155,19 @@ class SLTimer(object):
 
         # Optimize the model for both microlensing and intrinsic variability:
         if agn == 'spline':
-            self.agn = self.optimize_spline_model()
+            with SilentOperation(**as_requested):
+                self.agn = self.optimize_spline_model()
         else:
             print "Error: only free-knot spline models are available for AGN variability at present."
             return
 
-        # Print out time delays:
-        self.report_time_delays()
-
         # Do error analysis, if required:
         if error == 'complete':
-            self.estimate_uncertainties()
+            with SilentOperation(**as_requested):
+                self.estimate_uncertainties()
         elif error == 'intrinsic variance':
-            self.find_intrinsic_variance()
+            with SilentOperation(**as_requested):
+                self.find_intrinsic_variance()
         else:
             return
 

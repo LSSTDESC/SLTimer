@@ -40,7 +40,7 @@ script:
   - jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_Tutorial.ipynb
   - jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_TDC2_Example.ipynb
   # Build the docs:
-  - sphinx-build -b html -d _build/doctrees . _build/html
+  - sphinx-build -b html -d _build/doctrees docs _build/html
 
 after_success:
   - coveralls

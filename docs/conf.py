@@ -2,6 +2,12 @@ import sys
 import os
 import sphinx_rtd_theme
 
+# Provide path to the python modules we want to run autodoc on
+sys.path.insert(0, os.path.abspath('../python'))
+# Avoid imports that may be unsatisfied when running sphinx, see:
+# http://stackoverflow.com/questions/15889621/sphinx-how-to-exclude-imports-in-automodule#15912502
+autodoc_mock_imports = ["pycs", "pycs.gen.lc"]
+
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
@@ -17,7 +23,9 @@ autosummary_generate = True
 autoclass_content = "class"
 autodoc_default_flags = ["members", "no-special-members"]
 
-project = u'greeter'
+html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'], }
+
+project = u'SLTimer'
 author = u'Phil Marshall and the LSST Dark Energy Science Collaboration'
 copyright = u'2016, ' + author
 version = "0.1"

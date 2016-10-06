@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import os, urllib
 import subprocess
 import pycs
-from .IO import *
+from .io import *
 
 __all__ = ['SLTimer', 'spl']
 

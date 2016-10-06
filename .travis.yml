@@ -28,6 +28,8 @@ install:
   - sudo apt-get install dvipng
   - conda install jupyter
   - pip install nbconvert
+  # Set up to build docs:
+  - pip install sphinx
 
 script:
   # Run the unit tests:

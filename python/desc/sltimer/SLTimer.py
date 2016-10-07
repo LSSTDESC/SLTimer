@@ -170,6 +170,7 @@ class SLTimer(object):
 	for item in xrange(ndim-1):
           d.append(np.random.uniform(rangeList[item][0],rangeList[item][1],nsample))
         sample=np.array(d).T
+        sample=[[55]]
         p = Pool(processes=nprocess)
         chisquare=np.array(p.map(partial(getChiSquare,self.lcs),sample))
         weight=np.exp(-0.5*(chisquare-np.min(chisquare)))

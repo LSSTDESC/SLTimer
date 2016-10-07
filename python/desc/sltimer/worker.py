@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import os, urllib
 import subprocess
 import pycs
-from .io import *
+from .reading import *
 
 __all__ = ['SLTimer', 'spl']
 
@@ -25,7 +25,20 @@ class SLTimer(object):
 
     def download(self, url, format='rdb', and_read=False):
         '''
-        Download method to get the datafile from a url.
+        Downloads the datafile from a url.
+
+        Parameters
+        ----------
+        url : string
+            Web address of datafile.
+        format : string
+            Data format, 'rdb' or 'tdc2'
+        and_read : boolean
+            Read in data after downloading file?
+
+        Notes
+        -----
+        Don't forget to set `and_read=True` if you want to use the data!
         '''
         self.datafile = url.split('/')[-1]
         if not os.path.isfile(self.datafile):

@@ -28,6 +28,9 @@ install:
   - sudo apt-get install dvipng
   - conda install jupyter
   - pip install nbconvert
+  # Set up to build docs:
+  - pip install sphinx
+  - pip install sphinx_rtd_theme
 
 script:
   # Run the unit tests:
@@ -37,6 +40,8 @@ script:
   # jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute  notebooks/PyCS_Tutorial.ipynb
   - jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_Tutorial.ipynb
   - jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_TDC2_Example.ipynb
+  # Build the docs:
+  - sphinx-build -b html -d _build/doctrees docs _build/html
 
 after_success:
   - coveralls

@@ -10,10 +10,6 @@ from .reading import *
 
 __all__ = ['SLTimer', 'spl']
 
-class SLTimer(object):
-
-__all__ = ['SLTimer', 'spl']
-
 
 class SLTimer(object):
     '''
@@ -190,10 +186,9 @@ class SLTimer(object):
         else:
             return
 
-<<<<<<< HEAD:python/desc/sltimer/SLTimer.py
     #===================================================== Evaluate the fitting
 
-    def computeLielihood_simpleMC(self, nsample=1000, nprocess=5,
+    def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
                                   rangeList=None, outName="", save_file=True):
        	'''
         compute the likelihood by Montecarlo method
@@ -228,7 +223,6 @@ class SLTimer(object):
         np.save("{0}_sample_{1}_samples.npy".format(outName, nsample), sample)
         fig.savefig("{0}_likelihood_{1}_samples.png".format(outName, nsample))
 
-=======
 
     def initialize_time_delays(self, method=None, pars=None):
         '''
@@ -262,7 +256,6 @@ class SLTimer(object):
         self.report_time_delays()
 
         return
->>>>>>> master:python/desc/sltimer/worker.py
 
     #===================================================== Resimulating the Data
 

@@ -2,13 +2,15 @@
 # License info here?
 # ======================================================================
 from __future__ import absolute_import
-import os, urllib
+import os
+import urllib
 import subprocess
 import pycs
 import numpy as np
 from .IO import *
 
 __all__ = ['SLTimer', 'spl']
+
 
 class SLTimer(object):
     '''
@@ -149,11 +151,11 @@ class SLTimer(object):
             self.find_intrinsic_variance()
         else:
             return
-    
+
     #===================================================== Evaluate the fitting
 
-    def computeLikelihood_MC(self,nsample=1000,nprocess=5,\
-	rangeList=None,outName=""):
+    def computeLielihood_simpleMC(self, nsample=1000, nprocess=5,
+                                  rangeList=None, outName="", save_file=True):
        	'''
         compute the likelihood by Montecarlo method
         '''
@@ -161,29 +163,32 @@ class SLTimer(object):
         from multiprocessing import Pool
         from functools import partial
         import matplotlib
-	    # Force matplotlib to not use any Xwindows backend.
+        # Force matplotlib to not use any Xwindows backend.
         matplotlib.use('Agg')
         ndim = len(self.lcs)
-        if rangeList==None:
-       	   rangeList=[[-100,100]]*(ndim-1)
-	d=[]
-	for item in xrange(ndim-1):
-          d.append(np.random.uniform(rangeList[item][0],rangeList[item][1],nsample))
-        sample=np.array(d).T
-        sample=[[55]]
+        if rangeList is None:
+            rangeList = [[-100, 100]]*(ndim-1)
+        d = []
+        for item in xrange(ndim-1):
+            d.append(np.random.uniform(rangeList[item][0], rangeList[item][1],
+                     nsample))
+        sample = np.array(d).T
         p = Pool(processes=nprocess)
-        chisquare=np.array(p.map(partial(getChiSquare,self.lcs),sample))
-        weight=np.exp(-0.5*(chisquare-np.min(chisquare)))
-        weight/=np.sum(weight)
-        print("min chisquare,",np.min(chisquare))
-        print("weighted time delays (dAB,dAC,dAD)(days) :",weight.T.dot(sample))
-        fig=corner.corner(sample,labels=[r'$\Delta t_{AB}(days)$',r'$\Delta t_{AC}(days)$',r'$\Delta t_{AD}(days)$'],
-                        weights=weight,plot_contours=True,
-                        plot_density=True,hist_kwargs={"log":True})
-        np.save("%s_weight_%s_samples.npy"%(outName,nsample),weight)
-        np.save("%s_sample_%s_samples.npy"%(outName,nsample),sample)
-        fig.savefig("%s_likelihood_%s_samples.png"%(outName,nsample))
-	
+        chisquare = np.array(p.map(partial(get_chi_squared, self.lcs), sample))
+        weight = np.exp(-0.5*(chisquare-np.min(chisquare)))
+        weight /= np.sum(weight)
+        print("min chisquare,", np.min(chisquare))
+        print("weighted time delays (dAB,dAC,dAD)(days) :",
+              weight.T.dot(sample))
+        fig = corner.corner(sample, labels=[r'$\Delta t_{AB}(days)$',
+                                            r'$\Delta t_{AC}(days)$',
+                                            r'$\Delta t_{AD}(days)$'],
+                            weights=weight, plot_contours=True,
+                            plot_density=True, hist_kwargs={"log": True})
+        np.save("{0}_weight_{1}_samples.npy".format(outName, nsample), weight)
+        np.save("{0}_sample_{1}_samples.npy".format(outName, nsample), sample)
+        fig.savefig("{0}_likelihood_{1}_samples.png".format(outName, nsample))
+
 
     #===================================================== Resimulating the Data
 
@@ -296,30 +301,30 @@ class SLTimer(object):
 # End of the SLTimer class.
 # ======================================================================
 
+
 # Optimizer functions (could go in "optimize.py" instead?)
-def spl(lcs):
-    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50)
-    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30)
-    spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20)
+def spl(lcs, shifttime=True, verbose=True):
+    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50,
+                                       shifttime=shifttime, verbose=verbose)
+
+    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30,
+                                       shifttime=shifttime, verbose=verbose)
+
+    spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20,
+                                      shifttime=shifttime, verbose=verbose)
     return spline
 
-def splNoShift(lcs):
-    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50,verbose=False,shifttime=False)
-    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30,verbose=False,shifttime=False)
-    spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20,verbose=False,shifttime=False)
-    return spline
-####To compute the chisquare
-def getChiSquare(lcs_original,delay):
+
+# To compute the chisquare
+def get_chi_squared(lcs_original, delay):
     import copy
-    lcs=copy.deepcopy(lcs_original)
+    lcs = copy.deepcopy(lcs_original)
     for l in lcs:
         l.resetshifts()
         l.resetml()
     for index, l in enumerate(lcs):
-        pycs.gen.splml.addtolc(l,knotstep=150)
-        if index!=0:
-           l.timeshift=delay[index-1]
-    spline = splNoShift(lcs)
-    return spline.lastr2nostab 
-
-
+        pycs.gen.splml.addtolc(l, knotstep=150)
+        if index != 0:
+            l.timeshift = delay[index-1]
+    spline = spl(lcs, verbose=False, shifttime=False)
+    return spline.lastr2nostab

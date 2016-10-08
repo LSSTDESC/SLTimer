@@ -10,5 +10,3 @@ API
 .. automodule:: desc.sltimer.worker
        :members:
 
-.. automodule:: desc.sltimer.io
-       :members:

@@ -5,14 +5,14 @@ from __future__ import absolute_import
 import os, urllib
 import subprocess
 import pycs
-from .IO import *
+from .reading import *
 
 __all__ = ['SLTimer', 'spl']
 
 class SLTimer(object):
     '''
-    Simple class for ingesting strong lens light curve data, and measuring the
-    time .
+    Worker class for ingesting strongly lensed image light curves, and
+    measuring the time delays between them.
     '''
 
     def __init__(self):
@@ -25,7 +25,20 @@ class SLTimer(object):
 
     def download(self, url, format='rdb', and_read=False):
         '''
-        Download method to get the datafile from a url.
+        Downloads the datafile from a url.
+
+        Parameters
+        ----------
+        url : string
+            Web address of datafile.
+        format : string
+            Data format, 'rdb' or 'tdc2'
+        and_read : boolean
+            Read in data after downloading file?
+
+        Notes
+        -----
+        Don't forget to set `and_read=True` if you want to use the data!
         '''
         self.datafile = url.split('/')[-1]
         if not os.path.isfile(self.datafile):
@@ -37,7 +50,7 @@ class SLTimer(object):
 
     def read_in(self, datafile='self', format=None):
         '''
-        Read in method to specify which type of datafile will be read in.
+        Reads in light curve data from a file.
         '''
         if datafile == 'self':
             pass
@@ -56,13 +69,16 @@ class SLTimer(object):
         return
 
     def optimize_spline_model(self):
+        '''
+        Optimizes a spline model for the intrinsic variability.
+        '''
         return spl(self.lcs)
 
     #========================================================== Plotting light curves
 
-    def display_light_curves(self,filename=None,jdrange=(None)):
+    def display_light_curves(self, filename=None, jdrange=(None)):
         '''
-        To display the lightcurves.
+        Displays the lightcurves in a single panel plot.
         '''
         pycs.gen.mrg.colourise(self.lcs)
         # Replace the following with an optional input list of shifts
@@ -78,6 +94,9 @@ class SLTimer(object):
         return
 
     def whiten(self):
+        '''
+        Whitens a set of multi-filter light curves to a single fictitious band.
+        '''
         self.lcs = whiten(self.lcs)
         return
 
@@ -85,7 +104,7 @@ class SLTimer(object):
 
     def add_polynomial_microlensing(self):
         '''
-        To add polynomial microlensing to each lightcurve.
+        Adds polynomial microlensing to each lightcurve.
         '''
         pycs.gen.polyml.addtolc(self.lcs[0], nparams=3,
                                 autoseasonsgap=600.0)
@@ -100,7 +119,7 @@ class SLTimer(object):
 
     def add_spline_microlensing(self):
         '''
-        To add spline microlensing to each light curve.
+        Adds spline microlensing to each light curve.
         '''
         pycs.gen.splml.addtolc(self.lcs[0], knotstep=150)
         pycs.gen.splml.addtolc(self.lcs[1], knotstep=150)
@@ -109,10 +128,26 @@ class SLTimer(object):
             pycs.gen.splml.addtolc(self.lcs[3], knotstep=150)
         return
 
-    #============================================= Primary workhorse method
+    #========================================= Primary workhorse method
 
     def estimate_time_delays(self, method='pycs', microlensing='spline', agn='spline', error=None, quietly=False):
         '''
+        Measures time delays between images, by modeling all the light
+        curves.
+
+        Parameters
+        ----------
+        method : string
+            Modeling package to use.
+        microlensing : string
+            Choice of microlensing model to use.
+        agn : string
+            Choice of intrinsic AGN variability model to use.
+        error : string
+            Error estimation options [None, 'complete', 'intrinsic variance']
+
+        Notes
+        -----
         Provides both polynomial and spline time delays.
 
         Parameters
@@ -158,7 +193,7 @@ class SLTimer(object):
             with SilentOperation(**as_requested):
                 self.agn = self.optimize_spline_model()
         else:
-            print "Error: only free-knot spline models are available for AGN variability at present."
+            print "Error: only free-knot spline models are available  for AGN variability at present."
             return
 
         # Do error analysis, if required:
@@ -174,7 +209,7 @@ class SLTimer(object):
 
     def initialize_time_delays(self, method=None, pars=None):
         '''
-        Initialize the curve shifts by specifying 1 or 3 time delays.
+        Initializes the curve shifts by specifying 1 or 3 time delays.
         '''
         if method is None:
             dt = {'AB':0.0}
@@ -209,7 +244,7 @@ class SLTimer(object):
 
     def delete_old_files(self):
         '''
-        To delete the old files from prior runs through the data.
+        Deletes the old files from previous error simulations.
         '''
         subprocess.call('rm -rfv sims_copies sims_mocks', shell=True)
         subprocess.call('rm -rfv sims_copies_opt_spl sims_copies_opt_disp sims_copies_opt_regdiff', shell=True)
@@ -217,19 +252,18 @@ class SLTimer(object):
         print "The old files have been deleted."
         return
 
-    def make_plain_copies(self,n=None,npkl=None):
+    def make_plain_copies(self, n=None, npkl=None):
         '''
-        To make copies of the data.
+        Makes copies of the data.
         '''
         Ncopies = n*npkl
-        print "Making",Ncopies,"copies of the original dataset:"
+        print "Making", Ncopies, "copies of the original dataset:"
         pycs.sim.draw.multidraw(self.lcs, onlycopy=True, n=n, npkl=npkl, simset="copies")
         return
 
-    def make_mock_light_curves(self,n=None,npkl=None):
-        # (modellcs, modelspline) = pycs.gen.util.readpickle("optspline.pkl")
+    def make_mock_light_curves(self, n=None, npkl=None):
         '''
-        To make mock lightcurves to provide an basis for the estimate uncertainties.
+        Make mock lightcurves to help estimate uncertainties.
         '''
         modellcs, modelspline = self.lcs, self.agn
         def Atweakml(xlcs):
@@ -242,13 +276,12 @@ class SLTimer(object):
             return pycs.sim.twk.tweakml(xlcs, beta=-0.0, sigma=4.5, fmin=1/500.0, fmax=None, psplot=False)
         Nmocks = n*npkl
         truetsr = 8.0
-        print "Making",Nmocks,"synthetic datasets, varying time delays by +/-",truetsr/2.0,"days"
+        print "Making", Nmocks, "synthetic datasets, varying time delays by +/-", truetsr/2.0, "days"
         pycs.sim.draw.saveresiduals(modellcs, modelspline)
-        pycs.sim.draw.multidraw(modellcs, modelspline, n=n, npkl=npkl, simset="mocks",
-                truetsr=truetsr, tweakml=[Atweakml, Btweakml, Ctweakml, Dtweakml])
+        pycs.sim.draw.multidraw(modellcs, modelspline, n=n, npkl=npkl, simset="mocks", truetsr=truetsr, tweakml=[Atweakml, Btweakml, Ctweakml, Dtweakml])
         return
 
-    #===================================================== Making Multiple Model Fits
+    #========================================Making Multiple Model Fits
 
     def make_spline_model_fits_of_plain_copies(self):
         # Pass the optimizer function to multirun:
@@ -267,7 +300,7 @@ class SLTimer(object):
                             filename="fig_intrinsicvariance.pdf", dataout=True)
         return
 
-    #========================================================= Error Analysis
+    #=================================================== Error Analysis
 
     def error_summary(self):
         simresults = [
@@ -289,10 +322,10 @@ class SLTimer(object):
 
     #=====================================================Complete Error Analysis
 
-    def estimate_uncertainties(self,n=None,npkl=None):
+    def estimate_uncertainties(self, n=None, npkl=None):
         self.delete_old_files()
-        self.make_plain_copies(n=n,npkl=npkl)
-        self.make_mock_light_curves(n=n,npkl=npkl)
+        self.make_plain_copies(n=n, npkl=npkl)
+        self.make_mock_light_curves(n=n, npkl=npkl)
         # Add in an option to use regdiff and disp here
         self.make_spline_model_fits_of_plain_copies()
         self.make_spline_model_fits_of_mock_light_curves()
@@ -300,8 +333,8 @@ class SLTimer(object):
         self.error_summary()
         return
 
-    def find_intrinsic_variance(self,n=None,npkl=None):
-        self.make_plain_copies(n=n,npkl=npkl)
+    def find_intrinsic_variance(self,n=None, npkl=None):
+        self.make_plain_copies(n=n, npkl=npkl)
         self.make_spline_model_fits_of_plain_copies()
         self.plot_intrinsic_variance_histograms()
         return

@@ -73,3 +73,7 @@ tdc2-gateway-*.txt
 fig*pdf
 out*txt
 sims_*
+
+# Sphinx documentation
+_build
+api

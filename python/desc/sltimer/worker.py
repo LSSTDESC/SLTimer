@@ -95,6 +95,17 @@ class SLTimer(object):
             pycs.gen.lc.display(self.lcs, filename=filename)
         return
 
+    def select_bands(self, bands):
+        '''
+        select bands you want to keep
+
+        Notes:
+        ------
+
+        .. warning:: this function will change the light curve in SLTimer
+        '''
+        self.lcs = select_bands(self.lcs, bands)
+
     def whiten(self):
         '''
         Whitens a set of multi-filter light curves to a single fictitious band.
@@ -187,7 +198,7 @@ class SLTimer(object):
             return
 
     #===================================================== Evaluate the fitting
-
+    def saveMatrix(self,)
     def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
                                   rangeList=None, outName="", save_file=True):
        	'''

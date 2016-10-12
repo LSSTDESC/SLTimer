@@ -3,7 +3,8 @@ import os
 import numpy as np
 from pycs.gen.lc import factory
 
-__all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'tdc2import', 'factory', 'flexibleimport','flux2magnitude','whiten']
+__all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'tdc2import', 'factory',
+           'flexibleimport', 'flux2magnitude', 'select_bands', 'whiten']
 
 def read_in_rdb_data(datafile):
     """
@@ -18,11 +19,21 @@ def read_in_rdb_data(datafile):
             ]
     return lcs
 
-def read_in_tdc2_data(datafile,whiten=False):
+
+def read_in_tdc2_data(datafile, bands=None, whiten=False):
     """
     Reads in the datafiles that will be used for the Time Delay
     Challenge 2. Has an option to take the data from multiple filters
     and "whiten" it to look like it came from a single filter.
+
+    Parameters
+    ----------
+    datafile : string
+        the file name you want to read
+    bands : array_like
+        the bands you want to keep
+    whiten : bool
+        whether you want to whiten your light curve or not
     """
 
     Nim = count_images(datafile)
@@ -39,7 +50,8 @@ def read_in_tdc2_data(datafile,whiten=False):
                                "Image", units='nmgy') )
         lcs.append( tdc2import(datafile, 'D', 'flux_D', 'flux_D_err',
                                "Image", units='nmgy') )
-
+    if bands is not None:
+        lcs = select_bands(lcs, bands)
     if whiten:
         whiten(lcs)
 
@@ -250,6 +262,30 @@ def mean_and_scatter(lcs):
         mean[names[j]] = np.mean(lcs[j].mags)
         scatter[names[j]] = np.std(lcs[j].mags)
     return mean,scatter
+
+
+def select_bands(lcs, bands):
+    """
+    Function to select bands which you want to analyze
+    Parameters
+    ----------
+    lcs : lcs object array
+        an array contans pycs light curve object
+    bands : array_like
+        the bands you want to keep
+
+
+    Returns
+    -------
+    lcs: lcs object array
+    """
+    print("Keep only bands {0}".format(bands))
+    for lc in lcs:
+        for index, item in enumerate(lc.properties):
+            if item['band'] not in bands:
+                    lc.mask[index] = False
+        lc.cutmask()
+    return lcs
 
 
 def whiten(lcs):

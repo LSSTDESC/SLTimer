@@ -198,7 +198,6 @@ class SLTimer(object):
             return
 
     #===================================================== Evaluate the fitting
-    def saveMatrix(self,)
     def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
                                   rangeList=None, outName="", save_file=True):
        	'''

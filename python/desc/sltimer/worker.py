@@ -198,18 +198,15 @@ class SLTimer(object):
             return
 
     #===================================================== Evaluate the fitting
-    def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
-                                  rangeList=None, outName="", save_file=True):
-       	'''
-        compute the likelihood by Montecarlo method
-        '''
-        import corner
-        from multiprocessing import Pool
-        from functools import partial
-        import matplotlib
-        # Force matplotlib to not use any Xwindows backend.
-        matplotlib.use('Agg')
+    def compute_chisq(self, delay):
+        """
+        return chisquare of spline fitting given time delay
+        """
+        return get_chi_squared(self.lcs, delay)
+
+    def generate_random_sample(self, rangeList, nsample):
         ndim = len(self.lcs)
+        #Generate samples 
         if rangeList is None:
             rangeList = [[-100, 100]]*(ndim-1)
         d = []
@@ -217,22 +214,69 @@ class SLTimer(object):
             d.append(np.random.uniform(rangeList[item][0], rangeList[item][1],
                      nsample))
         sample = np.array(d).T
-        p = Pool(processes=nprocess)
-        chisquare = np.array(p.map(partial(get_chi_squared, self.lcs), sample))
-        weight = np.exp(-0.5*(chisquare-np.min(chisquare)))
-        weight /= np.sum(weight)
-        print("min chisquare,", np.min(chisquare))
-        print("weighted time delays (dAB,dAC,dAD)(days) :",
-              weight.T.dot(sample))
+        return sample
+
+    def write_out_to(self, result, outName):
+
+        file_name = "{0}_delay_chi2_{1}_samples.txt".format(outName,
+                                                            result.shape[0])
+        names = ["AB", "AC", "AD"]
+        header = "Smaples time delay for simple montecarlo and their corresponding \
+        chisquare. \n"
+        for index in xrange(result.shape[1]-1):
+            header += "   dt_"+names[index]
+        header += "   chisquare"
+        np.savetxt(file_name, result, header=header, comments="# ")
+        return
+
+    def plot_likelihood_from_file(self, file_name):
+        result = np.loadtxt(file_name)
+        self.plot_likelihood(result, "from_file_" + file_name[-10:])
+        return
+
+    def plot_likelihood(self, result, outName, plot_contours=True,
+                        plot_density=True):
+        import corner
+        import matplotlib
+        # Force matplotlib to not use any Xwindows backend.
+        matplotlib.use('Agg')
+        sample = result[:, :-1]
+        weight = chi2_to_weight(result[:, -1])
         fig = corner.corner(sample, labels=[r'$\Delta t_{AB}(days)$',
                                             r'$\Delta t_{AC}(days)$',
                                             r'$\Delta t_{AD}(days)$'],
-                            weights=weight, plot_contours=True,
-                            plot_density=True, hist_kwargs={"log": True})
-        np.save("{0}_weight_{1}_samples.npy".format(outName, nsample), weight)
-        np.save("{0}_sample_{1}_samples.npy".format(outName, nsample), sample)
-        fig.savefig("{0}_likelihood_{1}_samples.png".format(outName, nsample))
+                            weights=weight, plot_contours=plot_contours,
+                            plot_density=plot_density,
+                            hist_kwargs={"log": True})
 
+        fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
+                    result.shape[0]))
+        return
+
+    def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
+                                    rangeList=None, outName="",
+                                    save_file=True):
+       	'''
+        compute the likelihood by Montecarlo method
+        '''
+        from multiprocessing import Pool
+        from functools import partial
+        sample = self.generate_random_sample(rangeList=rangeList,
+                                             nsample=nsample)
+        #calculate the chisquare
+        p = Pool(processes=nprocess)
+        chisquare = np.array(p.map(partial(get_chi_squared, self.lcs), sample))
+        weight = chi2_to_weight(chisquare)
+        print("min chisquare,", np.min(chisquare))
+        print("#"*20)
+        print("weighted time delays (dAB,dAC,dAD)(days) :",
+              weight.T.dot(sample))
+
+        results = np.column_stack((sample, chisquare))
+
+        self.write_out_to(results, outName)
+        self.plot_likelihood(results, outName)
+        return
 
     def initialize_time_delays(self, method=None, pars=None):
         '''
@@ -403,3 +447,9 @@ def get_chi_squared(lcs_original, delay):
             l.timeshift = delay[index-1]
     spline = spl(lcs, verbose=False, shifttime=False)
     return spline.lastr2nostab
+
+
+def chi2_to_weight(chisquare):
+    weight = np.exp(-0.5*(chisquare-np.min(chisquare)))
+    weight /= np.sum(weight)
+    return weight

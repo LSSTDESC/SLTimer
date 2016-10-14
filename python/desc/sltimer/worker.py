@@ -260,10 +260,13 @@ class SLTimer(object):
         return
 
     def plot_likelihood(self, result, outName, plot_contours=True,
-                        plot_density=True):
+                        plot_density=True, chisquare=False):
         import corner
         sample = result[:, :-1]
-        weight = chi2_to_weight(result[:, -1])
+        if not chisquare:
+            weight = chi2_to_weight(result[:, -1])
+        else:
+            weight = np.log10(result[:, -1])
         fig = corner.corner(sample, labels=[r'$\Delta t_{AB}(days)$',
                                             r'$\Delta t_{AC}(days)$',
                                             r'$\Delta t_{AD}(days)$'],
@@ -286,6 +289,7 @@ class SLTimer(object):
         import time
         if samples is not None:
             sample = samples
+            nsample = len(sample)
         else:
             sample = self.generate_random_sample(rangeList=rangeList,
                                                  nsample=nsample)

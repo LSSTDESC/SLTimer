@@ -198,10 +198,26 @@ class SLTimer(object):
             return
 
     #===================================================== Evaluate the fitting
-    def compute_chisq(self, delay):
+    def compute_chisq(self, delay, batch=False):
         """
         return chisquare of spline fitting given time delay
+
+        Parameters
+        ----------
+        delay : 1D array
+            array contains time delays for each light curve. The convention is
+            [dt_AB, dt_AC, dt_AD]
+
+        batch : bool
+            if batch==True, then delay can be a two dimensional array with each
+                row contains a set of time delay sample.
+
         """
+        if batch:
+            chisquare = []
+            for item in delay:
+                chisquare.append(get_chi_squared(self.lcs, item))
+            return chisquare
         return get_chi_squared(self.lcs, delay)
 
     def generate_random_sample(self, rangeList, nsample):
@@ -255,14 +271,17 @@ class SLTimer(object):
 
     def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
                                     rangeList=None, outName="",
-                                    save_file=True):
+                                    save_file=True, samples=None):
        	'''
         compute the likelihood by Montecarlo method
         '''
         from multiprocessing import Pool
         from functools import partial
-        sample = self.generate_random_sample(rangeList=rangeList,
-                                             nsample=nsample)
+        if samples is not None:
+            sample = samples
+        else:
+            sample = self.generate_random_sample(rangeList=rangeList,
+                                                 nsample=nsample)
         #calculate the chisquare
         p = Pool(processes=nprocess)
         chisquare = np.array(p.map(partial(get_chi_squared, self.lcs), sample))

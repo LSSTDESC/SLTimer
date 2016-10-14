@@ -8,6 +8,10 @@ import pycs
 import numpy as np
 from .reading import *
 
+import matplotlib
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
+
 __all__ = ['SLTimer', 'spl']
 
 
@@ -258,9 +262,6 @@ class SLTimer(object):
     def plot_likelihood(self, result, outName, plot_contours=True,
                         plot_density=True):
         import corner
-        import matplotlib
-        # Force matplotlib to not use any Xwindows backend.
-        matplotlib.use('Agg')
         sample = result[:, :-1]
         weight = chi2_to_weight(result[:, -1])
         fig = corner.corner(sample, labels=[r'$\Delta t_{AB}(days)$',

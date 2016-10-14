@@ -239,7 +239,6 @@ class SLTimer(object):
         return sample
 
     def write_out_to(self, result, outName):
-
         file_name = "{0}_delay_chi2_{1}_samples.txt".format(outName,
                                                             result.shape[0])
         names = ["AB", "AC", "AD"]
@@ -283,14 +282,18 @@ class SLTimer(object):
         '''
         from multiprocessing import Pool
         from functools import partial
+        import time
         if samples is not None:
             sample = samples
         else:
             sample = self.generate_random_sample(rangeList=rangeList,
                                                  nsample=nsample)
         #calculate the chisquare
+        start = time.time()
         p = Pool(processes=nprocess)
         chisquare = np.array(p.map(partial(get_chi_squared, self.lcs), sample))
+        end = time.time()
+        print("Multiprocessing used {0} seconds.".format(end-start))
         weight = chi2_to_weight(chisquare)
         print("min chisquare,", np.min(chisquare))
         print("#"*20)

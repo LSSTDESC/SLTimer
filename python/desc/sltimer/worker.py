@@ -106,6 +106,12 @@ class SLTimer(object):
         '''
         self.lcs = select_bands(self.lcs, bands)
 
+    def reset_lc(self):
+        for l in self.lcs:
+            l.resetshifts()
+            l.resetml()
+        return
+
     def whiten(self):
         '''
         Whitens a set of multi-filter light curves to a single fictitious band.

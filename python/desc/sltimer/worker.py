@@ -27,6 +27,7 @@ class SLTimer(object):
         self.time_delays = None
         self.datafile = None
         self.lcs = None
+        self.ml_knotstep = 150
         return
 
     def download(self, url, format='rdb', and_read=False):
@@ -82,21 +83,35 @@ class SLTimer(object):
 
     #========================================================== Plotting light curves
 
-    def display_light_curves(self, filename=None, jdrange=(None)):
+    def display_light_curves(self, filename=None, jdrange=(None), title=None,
+                             delay=None):
         '''
         Displays the lightcurves in a single panel plot.
         '''
+        if delay is not None:
+            lcs = self.lcs
+            agn = self.agn
+            self.lcs, self.agn = \
+                      get_chi_squared(lcs_original=self.lcs,
+                                      ml_knotstep=self.ml_knotstep,
+                                      delay=[delay], getlcs=True)
         pycs.gen.mrg.colourise(self.lcs)
         # Replace the following with an optional input list of shifts
         #lcs[1].shifttime(-5.0)
         #lcs[2].shifttime(-20.0)
         #lcs[3].shifttime(-70.0)
-        pycs.gen.lc.display(self.lcs, [self.agn], figsize=(20, 7), jdrange=jdrange)
+        pycs.gen.lc.display(self.lcs, [self.agn], figsize=(20, 7),
+                            jdrange=jdrange, title=title, nicefont=True)
         # lcs = pycs.gen.util
         # for l in lcs:
         #     l.resetshifts()
         if filename is not None:
-            pycs.gen.lc.display(self.lcs, filename=filename)
+            pycs.gen.lc.display(self.lcs, [self.agn], figsize=(20, 7),
+                                jdrange=jdrange, title=title, nicefont=True,
+                                filename=filename)
+        if delay is not None:
+            self.lcs = lcs
+            self.agn = agn
         return
 
     def select_bands(self, bands):
@@ -144,11 +159,7 @@ class SLTimer(object):
         '''
         Adds spline microlensing to each light curve.
         '''
-        pycs.gen.splml.addtolc(self.lcs[0], knotstep=150)
-        pycs.gen.splml.addtolc(self.lcs[1], knotstep=150)
-        if self.Nim == 4:
-            pycs.gen.splml.addtolc(self.lcs[2], knotstep=150)
-            pycs.gen.splml.addtolc(self.lcs[3], knotstep=150)
+        spline_microlensing(self.lcs, self.ml_knotstep)
         return
 
     #============================================= Primary workhorse method
@@ -226,9 +237,16 @@ class SLTimer(object):
         if batch:
             chisquare = []
             for item in delay:
-                chisquare.append(get_chi_squared(self.lcs, item))
+                chisquare.append(get_chi_squared(
+                                 lcs_original=self.lcs,
+                                 ml_knotstep=self.ml_knotstep, delay=item,
+                                 getlcs=False
+                                 ))
             return chisquare
-        return get_chi_squared(self.lcs, delay)
+        return get_chi_squared(lcs_original=self.lcs,
+                               ml_knotstep=self.ml_knotstep,
+                               getlcs=False,
+                               delay=delay)
 
     def generate_random_sample(self, rangeList, nsample):
         ndim = len(self.lcs)
@@ -254,25 +272,36 @@ class SLTimer(object):
         np.savetxt(file_name, result, header=header, comments="# ")
         return
 
-    def plot_likelihood_from_file(self, file_name):
+    def plot_likelihood_from_file(self, file_name, chisquare=False, bins=20,
+                                  outName="from_file_"):
         result = np.loadtxt(file_name)
-        self.plot_likelihood(result, "from_file_" + file_name[-10:])
+        self.plot_likelihood(result, outName+file_name[-10:],
+                             chisquare=chisquare, bins=bins)
         return
 
     def plot_likelihood(self, result, outName, plot_contours=True,
-                        plot_density=True, chisquare=False):
+                        plot_density=True, chisquare=False, bins=20):
         import corner
+        log = True
         sample = result[:, :-1]
         if not chisquare:
             weight = chi2_to_weight(result[:, -1])
+            title = "likelihood"
         else:
-            weight = np.log10(result[:, -1])
-        fig = corner.corner(sample, labels=[r'$\Delta t_{AB}(days)$',
-                                            r'$\Delta t_{AC}(days)$',
-                                            r'$\Delta t_{AD}(days)$'],
+            weight = np.log10(result[:, -1])-np.log10(np.min(result[:, -1]))
+           # weight = result[:, -1] - np.min(result[:, -1])
+            log = False
+            title = r"$log(\chi^2)$"
+        fig = corner.corner(sample, bins=bins,
+                            labels=[r'$\Delta t_{AB}(days)$',
+                                    r'$\Delta t_{AC}(days)$',
+                                    r'$\Delta t_{AD}(days)$'],
                             weights=weight, plot_contours=plot_contours,
                             plot_density=plot_density,
-                            hist_kwargs={"log": True})
+                            hist_kwargs={"log": log},
+                            max_n_ticks=10,
+                            )
+        fig.suptitle(title)
 
         fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
                     result.shape[0]))
@@ -296,7 +325,12 @@ class SLTimer(object):
         #calculate the chisquare
         start = time.time()
         p = Pool(processes=nprocess)
-        chisquare = np.array(p.map(partial(get_chi_squared, self.lcs), sample))
+        chisquare = np.array(p.map(partial(
+                                    get_chi_squared,
+                                    lcs_original=self.lcs,
+                                    ml_knotstep=self.ml_knotstep,
+                                    getlcs=False),
+                                   sample))
         end = time.time()
         print("Multiprocessing used {0} seconds.".format(end-start))
         weight = chi2_to_weight(chisquare)
@@ -304,12 +338,11 @@ class SLTimer(object):
         print("#"*20)
         print("weighted time delays (dAB,dAC,dAD)(days) :",
               weight.T.dot(sample))
-
         results = np.column_stack((sample, chisquare))
-
-        self.write_out_to(results, outName)
-        self.plot_likelihood(results, outName)
-        return
+        if save_file:
+            self.write_out_to(results, outName)
+            self.plot_likelihood(results, outName)
+        return sample[np.argmin(chisquare)]
 
     def initialize_time_delays(self, method=None, pars=None):
         '''
@@ -327,6 +360,14 @@ class SLTimer(object):
             assert len(dt) == (self.Nim - 1)
             assert type(dt) == dict
 
+        elif method == 'simpleMC':
+            bestGuess = self.compute_likelihood_simpleMC(nsample=10,
+                                                         nprocess=4,
+                                                         save_file=False)
+            dt = {'AB': bestGuess[0]}
+            if self.Nim == 4:
+                dt = {'AC': bestGuess[1]}
+                dt = {'AD': bestGuess[2]}
         else:
             raise ValueError("Unrecognized initialization method '"+method+"'")
 
@@ -447,7 +488,7 @@ class SLTimer(object):
         print "Time Delays:"
         self.time_delays = pycs.gen.lc.getnicetimedelays(self.lcs, separator="\n", sorted=True)
         print self.time_delays
-        return
+        return self.time_delays
 
 # ======================================================================
 # End of the SLTimer class.
@@ -467,19 +508,31 @@ def spl(lcs, shifttime=True, verbose=True):
     return spline
 
 
+def spline_microlensing(lcs, ml_knotstep):
+    if ml_knotstep is None:
+        print("you didn't add any microlensing")
+    else:
+        for l in lcs:
+            pycs.gen.splml.addtolc(l, knotstep=ml_knotstep)
+    return
 # To compute the chisquare
-def get_chi_squared(lcs_original, delay):
+
+
+def get_chi_squared(delay, lcs_original, ml_knotstep, getlcs):
     import copy
     lcs = copy.deepcopy(lcs_original)
     for l in lcs:
         l.resetshifts()
         l.resetml()
+    spline_microlensing(lcs, ml_knotstep)
     for index, l in enumerate(lcs):
-        pycs.gen.splml.addtolc(l, knotstep=150)
         if index != 0:
             l.timeshift = delay[index-1]
     spline = spl(lcs, verbose=False, shifttime=False)
-    return spline.lastr2nostab
+    if getlcs:
+        return [lcs, spline]
+    else:
+        return spline.lastr2nostab
 
 
 def chi2_to_weight(chisquare):

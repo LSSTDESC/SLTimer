@@ -309,7 +309,7 @@ class SLTimer(object):
 
     def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
                                     rangeList=None, outName="",
-                                    save_file=True, samples=None):
+                                    save_file=True, samples=None, knotstep=20):
        	'''
         compute the likelihood by Montecarlo method
         '''
@@ -329,7 +329,8 @@ class SLTimer(object):
                                     get_chi_squared,
                                     lcs_original=self.lcs,
                                     ml_knotstep=self.ml_knotstep,
-                                    getlcs=False),
+                                    getlcs=False,
+                                    knotstep=knotstep),
                                    sample))
         end = time.time()
         print("Multiprocessing used {0} seconds.".format(end-start))
@@ -496,14 +497,14 @@ class SLTimer(object):
 
 
 # Optimizer functions (could go in "optimize.py" instead?)
-def spl(lcs, shifttime=True, verbose=True):
-    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=50,
+def spl(lcs, shifttime=True, verbose=True, knotstep=20):
+    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=5/2*knotstep,
                                        shifttime=shifttime, verbose=verbose)
 
-    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=30,
+    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=3/2*knotstep,
                                        shifttime=shifttime, verbose=verbose)
 
-    spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=20,
+    spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=knotstep,
                                       shifttime=shifttime, verbose=verbose)
     return spline
 
@@ -518,7 +519,7 @@ def spline_microlensing(lcs, ml_knotstep):
 # To compute the chisquare
 
 
-def get_chi_squared(delay, lcs_original, ml_knotstep, getlcs):
+def get_chi_squared(delay, lcs_original, ml_knotstep, getlcs, knotstep=20):
     import copy
     lcs = copy.deepcopy(lcs_original)
     for l in lcs:
@@ -528,7 +529,7 @@ def get_chi_squared(delay, lcs_original, ml_knotstep, getlcs):
     for index, l in enumerate(lcs):
         if index != 0:
             l.timeshift = delay[index-1]
-    spline = spl(lcs, verbose=False, shifttime=False)
+    spline = spl(lcs, verbose=False, shifttime=False, knotstep=knotstep)
     if getlcs:
         return [lcs, spline]
     else:

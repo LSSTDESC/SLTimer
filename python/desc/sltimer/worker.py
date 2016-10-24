@@ -27,7 +27,7 @@ class SLTimer(object):
         self.time_delays = None
         self.datafile = None
         self.lcs = None
-        self.ml_knotstep = 150
+        self.ml_knotstep = 350
         return
 
     def download(self, url, format='rdb', and_read=False):
@@ -344,6 +344,11 @@ class SLTimer(object):
             self.write_out_to(results, outName)
             self.plot_likelihood(results, outName)
         return sample[np.argmin(chisquare)]
+    
+    def degree_of_freedom(self, spline, mlSpline):
+        num = len(spline.t)
+        num_ML = len(mlSpline.t)
+        return num*2+4+len(self.lcs)*(num_ML*2+4)+4
 
     def initialize_time_delays(self, method=None, pars=None):
         '''
@@ -498,10 +503,10 @@ class SLTimer(object):
 
 # Optimizer functions (could go in "optimize.py" instead?)
 def spl(lcs, shifttime=True, verbose=True, knotstep=20):
-    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=5/2*knotstep,
+    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=5/2.*knotstep,
                                        shifttime=shifttime, verbose=verbose)
 
-    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=3/2*knotstep,
+    spline = pycs.spl.topopt.opt_rough(lcs, nit=5, knotstep=3/2.*knotstep,
                                        shifttime=shifttime, verbose=verbose)
 
     spline = pycs.spl.topopt.opt_fine(lcs, nit=10, knotstep=knotstep,

@@ -28,6 +28,7 @@ class SLTimer(object):
         self.datafile = None
         self.lcs = None
         self.ml_knotstep = 350
+        self.knotstep = 20
         return
 
     def download(self, url, format='rdb', and_read=False):
@@ -82,36 +83,34 @@ class SLTimer(object):
         return spl(self.lcs)
 
     #========================================================== Plotting light curves
-
     def display_light_curves(self, filename=None, jdrange=(None), title=None,
-                             delay=None):
+                             given_curve=None):
         '''
         Displays the lightcurves in a single panel plot.
         '''
-        if delay is not None:
+        if given_curve is not None:
+            if len(given_curve) == 2:
+                lcs, agn = given_curve
+            else:
+                lcs = given_curve
+                agn = None
+        else:
             lcs = self.lcs
-            agn = self.agn
-            self.lcs, self.agn = \
-                      get_chi_squared(lcs_original=self.lcs,
-                                      ml_knotstep=self.ml_knotstep,
-                                      delay=[delay], getlcs=True)
-        pycs.gen.mrg.colourise(self.lcs)
+            agn = None
+        pycs.gen.mrg.colourise(lcs)
         # Replace the following with an optional input list of shifts
         #lcs[1].shifttime(-5.0)
         #lcs[2].shifttime(-20.0)
         #lcs[3].shifttime(-70.0)
-        pycs.gen.lc.display(self.lcs, [self.agn], figsize=(20, 7),
+        pycs.gen.lc.display(lcs, [agn], figsize=(20, 7),
                             jdrange=jdrange, title=title, nicefont=True)
         # lcs = pycs.gen.util
         # for l in lcs:
         #     l.resetshifts()
         if filename is not None:
-            pycs.gen.lc.display(self.lcs, [self.agn], figsize=(20, 7),
+            pycs.gen.lc.display(lcs, [agn], figsize=(20, 7),
                                 jdrange=jdrange, title=title, nicefont=True,
                                 filename=filename)
-        if delay is not None:
-            self.lcs = lcs
-            self.agn = agn
         return
 
     def select_bands(self, bands):
@@ -219,7 +218,7 @@ class SLTimer(object):
             return
 
     #===================================================== Evaluate the fitting
-    def compute_chisq(self, delay, batch=False):
+    def compute_chisq(self, delay, batch=False, getlcs=False):
         """
         return chisquare of spline fitting given time delay
 
@@ -245,7 +244,7 @@ class SLTimer(object):
             return chisquare
         return get_chi_squared(lcs_original=self.lcs,
                                ml_knotstep=self.ml_knotstep,
-                               getlcs=False,
+                               getlcs=getlcs,
                                delay=delay)
 
     def generate_random_sample(self, rangeList, nsample):
@@ -309,7 +308,7 @@ class SLTimer(object):
 
     def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
                                     rangeList=None, outName="",
-                                    save_file=True, samples=None, knotstep=20):
+                                    save_file=True, samples=None):
        	'''
         compute the likelihood by Montecarlo method
         '''
@@ -330,7 +329,7 @@ class SLTimer(object):
                                     lcs_original=self.lcs,
                                     ml_knotstep=self.ml_knotstep,
                                     getlcs=False,
-                                    knotstep=knotstep),
+                                    knotstep=self.knotstep),
                                    sample))
         end = time.time()
         print("Multiprocessing used {0} seconds.".format(end-start))
@@ -344,11 +343,24 @@ class SLTimer(object):
             self.write_out_to(results, outName)
             self.plot_likelihood(results, outName)
         return sample[np.argmin(chisquare)]
-    
-    def degree_of_freedom(self, spline, mlSpline):
+
+    def degree_of_freedom(self):
+        spline = pycs.spl.topopt.opt_rough(self.lcs, nit=1,
+                                           knotstep=self.knotstep,
+                                           verbose=False)
         num = len(spline.t)
-        num_ML = len(mlSpline.t)
-        return num*2+4+len(self.lcs)*(num_ML*2+4)+4
+        spline = pycs.spl.topopt.opt_rough(self.lcs, nit=1,
+                                           knotstep=self.ml_knotstep,
+                                           verbose=False)
+        num_ml = len(spline.t)
+        free_param = num*2+4+len(self.lcs)*(num_ml*2+4)+4
+        nm_constraint = 0
+        for l in self.lcs:
+            nm_constraint += len(l)
+        print("knotstep for intrinsic fluctuation is: {0}".format(self.knotstep))
+        print("knotstep for micro lensing is: {0}".format(self.ml_knotstep))
+        dof = nm_constraint-free_param
+        return dof
 
     def initialize_time_delays(self, method=None, pars=None):
         '''

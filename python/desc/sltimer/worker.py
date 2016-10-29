@@ -2,16 +2,16 @@
 # License info here?
 # ======================================================================
 from __future__ import absolute_import
-import os, urllib
+import os
+import urllib
 import subprocess
 import pycs
 import numpy as np
 from .reading import *
-
+from matplotlib import pyplot as plt
 import matplotlib
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
-
 __all__ = ['SLTimer', 'spl']
 
 
@@ -80,7 +80,7 @@ class SLTimer(object):
         '''
         Optimizes a spline model for the intrinsic variability.
         '''
-        return spl(self.lcs)
+        return spl(self.lcs, knotstep=self.knotstep)
 
     #========================================================== Plotting light curves
     def display_light_curves(self, filename=None, jdrange=(None), title=None,
@@ -272,14 +272,16 @@ class SLTimer(object):
         return
 
     def plot_likelihood_from_file(self, file_name, chisquare=False, bins=20,
-                                  outName="from_file_"):
+                                  outName="from_file_", corner_plot=True):
         result = np.loadtxt(file_name)
         self.plot_likelihood(result, outName+file_name[-10:],
-                             chisquare=chisquare, bins=bins)
+                             chisquare=chisquare, bins=bins,
+                             corner_plot=corner_plot)
         return
 
     def plot_likelihood(self, result, outName, plot_contours=True,
-                        plot_density=True, chisquare=False, bins=20):
+                        plot_density=True, chisquare=False, bins=20,
+                        corner_plot=True):
         import corner
         log = True
         sample = result[:, :-1]
@@ -287,21 +289,35 @@ class SLTimer(object):
             weight = chi2_to_weight(result[:, -1])
             title = "likelihood"
         else:
-            weight = np.log10(result[:, -1])-np.log10(np.min(result[:, -1]))
+            weight = result[:, -1]
            # weight = result[:, -1] - np.min(result[:, -1])
             log = False
-            title = r"$log(\chi^2)$"
-        fig = corner.corner(sample, bins=bins,
-                            labels=[r'$\Delta t_{AB}(days)$',
-                                    r'$\Delta t_{AC}(days)$',
-                                    r'$\Delta t_{AD}(days)$'],
-                            weights=weight, plot_contours=plot_contours,
-                            plot_density=plot_density,
-                            hist_kwargs={"log": log},
-                            max_n_ticks=10,
-                            )
+            title = r"$\chi^2 plot$"
+        if corner_plot:
+            fig = corner.corner(sample, bins=bins,
+                                labels=[r'$\Delta t_{AB}(days)$',
+                                        r'$\Delta t_{AC}(days)$',
+                                        r'$\Delta t_{AD}(days)$'],
+                                weights=weight, plot_contours=plot_contours,
+                                plot_density=plot_density,
+                                max_n_ticks=10,
+                                use_math_text=True
+                                )
+        else:
+            if sample.shape[1] != 1:
+                print("corner=False can only be true when there is only 1D sample")
+            sample = sample.ravel()
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            bins = np.linspace(sample.min(), sample.max(), bins)
+            wd, b = np.histogram(sample, bins=bins, weights=weight)
+            counts, b = np.histogram(sample, bins=bins)
+            bincentres = [(b[i]+b[i+1])/2. for i in range(len(b)-1)]
+            ax.set_xlabel(r'$\Delta t_{AB}(days)$')
+            ax.set_ylabel(r'$\chi^2$')
+            ax.step(bincentres, wd/counts, where='mid', color='k',
+                    linestyle="-")
         fig.suptitle(title)
-
         fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
                     result.shape[0]))
         return
@@ -359,8 +375,9 @@ class SLTimer(object):
             nm_constraint += len(l)
         print("knotstep for intrinsic fluctuation is: {0}".format(self.knotstep))
         print("knotstep for micro lensing is: {0}".format(self.ml_knotstep))
+        print("number of data points is: {0}".format(nm_constraint))
         dof = nm_constraint-free_param
-        return dof
+        return {"dof" : dof, "# data" : nm_constraint}
 
     def initialize_time_delays(self, method=None, pars=None):
         '''

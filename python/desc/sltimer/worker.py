@@ -29,6 +29,11 @@ class SLTimer(object):
         self.lcs = None
         self.ml_knotstep = 350
         self.knotstep = 20
+        self.Hbar = 70.
+        self.sigmaH = 7
+        self.phibar = None
+        self.sigmaPhi = None
+        self.Q=0
         return
 
     def download(self, url, format='rdb', and_read=False):
@@ -69,12 +74,32 @@ class SLTimer(object):
             self.lcs = read_in_rdb_data(self.datafile)
         elif format == 'tdc2':
             self.lcs = read_in_tdc2_data(self.datafile)
+            Q_FP_ERR = get_tdc2_header(self.datafile)
+            self.Q = Q_FP_ERR['Q']
+            self.phibar = Q_FP_ERR['FP']
+            self.sigmaPhi = Q_FP_ERR['FPErr']
         else:
             raise ValueError('Unrecognized or null format '+str(format))
 
         self.Nim = len(self.lcs)
 
         return
+
+    def prior(t):
+        Hbar=self.Hbar
+        sigmaH=self.sigmaH
+        phibar=self.phibar
+        sigmaPhi=self.sigmaPhi
+        Q=self.Q/(3.0*1E5)
+   # print(Q*phibar/Hbar)
+        f=1./(2*sigmaH*sigmaPhi*np.pi*Q)
+        s=-(Hbar)**2/(sigmaH**2)+(-phibar**2)/(sigmaPhi**2)
+        t=((Hbar/(sigmaH**2)+(phibar*t)/(Q*sigmaPhi**2))**2)/(1./(sigmaH**2)+(t**2)/((sigmaPhi**2)*(Q**2)))
+        normalize=np.max(t)+s
+        m=np.exp(s+t-normalize)
+        ft=(Hbar/sigmaH**2+(phibar*t)/(Q*(sigmaPhi**2)))/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2)))
+        fif=np.sqrt(np.pi/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2))))
+        return f*m*ft*fif 
 
     def optimize_spline_model(self):
         '''
@@ -239,13 +264,13 @@ class SLTimer(object):
                 chisquare.append(get_chi_squared(
                                  lcs_original=self.lcs,
                                  ml_knotstep=self.ml_knotstep, delay=item,
-                                 getlcs=False
+                                 getlcs=False, knotstep=self.knotstep
                                  ))
             return chisquare
         return get_chi_squared(lcs_original=self.lcs,
                                ml_knotstep=self.ml_knotstep,
                                getlcs=getlcs,
-                               delay=delay)
+                               delay=delay, knotstep=self.knotstep)
 
     def generate_random_sample(self, rangeList, nsample):
         ndim = len(self.lcs)
@@ -272,16 +297,17 @@ class SLTimer(object):
         return
 
     def plot_likelihood_from_file(self, file_name, chisquare=False, bins=20,
-                                  outName="from_file_", corner_plot=True):
+                                  outName="from_file_", corner_plot=True,
+                                  add_prior= True):
         result = np.loadtxt(file_name)
         self.plot_likelihood(result, outName+file_name[-10:],
                              chisquare=chisquare, bins=bins,
-                             corner_plot=corner_plot)
+                             corner_plot=corner_plot, add_prior=add_prior)
         return
 
     def plot_likelihood(self, result, outName, plot_contours=True,
                         plot_density=True, chisquare=False, bins=20,
-                        corner_plot=True):
+                        corner_plot=True, add_prior=True):
         import corner
         log = True
         sample = result[:, :-1]

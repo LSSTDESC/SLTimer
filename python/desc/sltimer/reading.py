@@ -3,7 +3,7 @@ import os
 import numpy as np
 from pycs.gen.lc import factory
 
-__all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'tdc2import', 'factory',
+__all__ = ['get_tdc2_header','read_in_rdb_data', 'read_in_tdc2_data', 'tdc2import', 'factory',
            'flexibleimport', 'flux2magnitude', 'select_bands', 'whiten']
 
 def read_in_rdb_data(datafile):
@@ -19,7 +19,7 @@ def read_in_rdb_data(datafile):
             ]
     return lcs
 
-
+    
 def read_in_tdc2_data(datafile, bands=None, whiten=False):
     """
     Reads in the datafiles that will be used for the Time Delay
@@ -184,6 +184,24 @@ def count_images(filename):
     else:
         raise ValueError("Unexpected number of images ",Nim)
     return Nim
+
+
+def get_tdc2_header(datafile):
+    tdc2file = open(datafile, "r")
+    lines = tdc2file.readlines()
+    tdc2file.close()
+    Q_FP_Err = {}
+    for l in lines:
+        if l[0] == '#':
+            a = l.split(' ')
+            if len(a) > 2:
+                if a[1] == "Q:":
+                    Q_FP_Err['Q'] = eval(a[2])
+                if a[1] == "DeltaFP_AB:":
+                    Q_FP_Err['FP'] = eval(a[2])
+                if a[1] == "DeltaFP_AB_err:":
+                    Q_FP_Err['FPErr'] = eval(a[2])
+    return Q_FP_Err
 
 
 def tdc2import(filepath, object="Unknown", magcolname="flux",

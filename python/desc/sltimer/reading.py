@@ -3,7 +3,9 @@ import os, sys
 import numpy as np
 from pycs.gen.lc import factory
 
-__all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'tdc2import', 'factory', 'flexibleimport', 'flux2magnitude', 'whiten', 'SilentOperation']
+__all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'get_tdc2_header',
+           'tdc2import', 'factory', 'flexibleimport', 'flux2magnitude',
+           'select_bands', 'whiten', 'SilentOperation']
 
 # ======================================================================
 
@@ -22,11 +24,20 @@ def read_in_rdb_data(datafile):
 
 # ======================================================================
 
-def read_in_tdc2_data(datafile,whiten=False):
+def read_in_tdc2_data(datafile, bands=None, whiten=False):
     """
     Reads in the datafiles that will be used for the Time Delay
     Challenge 2. Has an option to take the data from multiple filters
     and "whiten" it to look like it came from a single filter.
+
+    Parameters
+    ----------
+    datafile : string
+        the file name you want to read
+    bands : array_like
+        the bands you want to keep
+    whiten : bool
+        whether you want to whiten your light curve or not
     """
 
     Nim = count_images(datafile)
@@ -43,7 +54,8 @@ def read_in_tdc2_data(datafile,whiten=False):
                                "Image", units='nmgy') )
         lcs.append( tdc2import(datafile, 'D', 'flux_D', 'flux_D_err',
                                "Image", units='nmgy') )
-
+    if bands is not None:
+        lcs = select_bands(lcs, bands)
     if whiten:
         whiten(lcs)
 
@@ -51,10 +63,14 @@ def read_in_tdc2_data(datafile,whiten=False):
 
 # ===================================================================
 
-def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=None, propertycols=None, telescopename="Unknown", object="Unknown", plotcolour="red", verbose = True, units='ABmags'):
+def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8,
+                   flagcol=None, propertycols=None,
+                   telescopename="Unknown", object="Unknown",
+                   plotcolour="red", verbose = True, units='ABmags'):
     """
-    The general form of file reading. We read only one lightcurve object.
-    To comment a line in the input file, start the line with # like in python.
+    The general form of file reading. We read only one lightcurve
+    object. To comment a line in the input file, start the line with
+    '#'' like in python.
 
     :param jdcol: The column number containing the MHJDs. First column is number 1, not 0 !
     :param magcol: The column number containing the magnitudes.
@@ -132,7 +148,7 @@ def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=N
     #Call the factory function from pycs
     pycs.gen.lc.factory(jds, mags)
 
-	# Make a brand new lightcurve object:
+    # Make a brand new lightcurve object:
     newlc = factory(np.array(jds), np.array(mags), magerrs=np.array(magerrs), telescopename=telescopename, object=object)
     newlc.properties = properties[:]
     newlc.mask = np.array(flags[:])
@@ -180,6 +196,24 @@ def count_images(filename):
     return Nim
 
 # ======================================================================
+
+def get_tdc2_header(datafile):
+    tdc2file = open(datafile, "r")
+    lines = tdc2file.readlines()
+    tdc2file.close()
+    Q_FP_Err = {}
+    for l in lines:
+        if l[0] == '#':
+            a = l.split(' ')
+            if len(a) > 2:
+                if a[1] == "Q:":
+                    Q_FP_Err['Q'] = eval(a[2])
+                if a[1] == "DeltaFP_AB:":
+                    Q_FP_Err['FP'] = eval(a[2])
+                if a[1] == "DeltaFP_AB_err:":
+                    Q_FP_Err['FPErr'] = eval(a[2])
+    return Q_FP_Err
+
 
 def tdc2import(filepath, object="Unknown", magcolname="flux",
                magerrcolname="flux_err", telescopename="Unknown",
@@ -260,6 +294,30 @@ def mean_and_scatter(lcs):
     return mean,scatter
 
 # ======================================================================
+
+def select_bands(lcs, bands):
+    """
+    Function to select bands which you want to analyze
+    Parameters
+    ----------
+    lcs : lcs object array
+        an array contans pycs light curve object
+    bands : array_like
+        the bands you want to keep
+
+
+    Returns
+    -------
+    lcs: lcs object array
+    """
+    print("Keep only bands {0}".format(bands))
+    for lc in lcs:
+        for index, item in enumerate(lc.properties):
+            if item['band'] not in bands:
+                lc.mask[index] = False
+        lc.cutmask()
+    return lcs
+
 
 def whiten(lcs):
     """

@@ -1,10 +1,13 @@
 import pycs
-import os
+import os, sys
 import numpy as np
 from pycs.gen.lc import factory
 
-__all__ = ['get_tdc2_header','read_in_rdb_data', 'read_in_tdc2_data', 'tdc2import', 'factory',
-           'flexibleimport', 'flux2magnitude', 'select_bands', 'whiten']
+__all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'get_tdc2_header',
+           'tdc2import', 'factory', 'flexibleimport', 'flux2magnitude',
+           'select_bands', 'whiten', 'SilentOperation']
+
+# ======================================================================
 
 def read_in_rdb_data(datafile):
     """
@@ -19,7 +22,8 @@ def read_in_rdb_data(datafile):
             ]
     return lcs
 
-    
+# ======================================================================
+
 def read_in_tdc2_data(datafile, bands=None, whiten=False):
     """
     Reads in the datafiles that will be used for the Time Delay
@@ -59,10 +63,14 @@ def read_in_tdc2_data(datafile, bands=None, whiten=False):
 
 # ===================================================================
 
-def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=None, propertycols=None, telescopename="Unknown", object="Unknown", plotcolour="red", verbose = True, units='ABmags'):
+def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8,
+                   flagcol=None, propertycols=None,
+                   telescopename="Unknown", object="Unknown",
+                   plotcolour="red", verbose = True, units='ABmags'):
     """
-    The general form of file reading. We read only one lightcurve object.
-    To comment a line in the input file, start the line with # like in python.
+    The general form of file reading. We read only one lightcurve
+    object. To comment a line in the input file, start the line with
+    '#'' like in python.
 
     :param jdcol: The column number containing the MHJDs. First column is number 1, not 0 !
     :param magcol: The column number containing the magnitudes.
@@ -140,7 +148,7 @@ def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=N
     #Call the factory function from pycs
     pycs.gen.lc.factory(jds, mags)
 
-	# Make a brand new lightcurve object:
+    # Make a brand new lightcurve object:
     newlc = factory(np.array(jds), np.array(mags), magerrs=np.array(magerrs), telescopename=telescopename, object=object)
     newlc.properties = properties[:]
     newlc.mask = np.array(flags[:])
@@ -151,6 +159,7 @@ def flexibleimport(filepath, jdcol=1, magcol=2, errcol=3, startline=8, flagcol=N
     if verbose: print "%s with %i points imported (%i of them masked)." % (str(newlc), len(newlc.jds), nbmask)
     return newlc
 
+# ======================================================================
 
 def flux2magnitude(x,xerr):
     """
@@ -169,6 +178,7 @@ def flux2magnitude(x,xerr):
         merr = (m_upper - m_lower)/2
     return m,merr
 
+# ======================================================================
 
 def count_images(filename):
     """
@@ -185,6 +195,7 @@ def count_images(filename):
         raise ValueError("Unexpected number of images ",Nim)
     return Nim
 
+# ======================================================================
 
 def get_tdc2_header(datafile):
     tdc2file = open(datafile, "r")
@@ -267,6 +278,7 @@ def tdc2import(filepath, object="Unknown", magcolname="flux",
     newlc.plotcolour = plotcolour
     return newlc
 
+# ======================================================================
 
 def mean_and_scatter(lcs):
     """
@@ -281,6 +293,7 @@ def mean_and_scatter(lcs):
         scatter[names[j]] = np.std(lcs[j].mags)
     return mean,scatter
 
+# ======================================================================
 
 def select_bands(lcs, bands):
     """
@@ -301,7 +314,7 @@ def select_bands(lcs, bands):
     for lc in lcs:
         for index, item in enumerate(lc.properties):
             if item['band'] not in bands:
-                    lc.mask[index] = False
+                lc.mask[index] = False
         lc.cutmask()
     return lcs
 
@@ -355,3 +368,36 @@ def whiten(lcs):
     print "whiten: after whitening, scatters =", sigma
 
     return lcs
+
+# ======================================================================
+
+class SilentOperation(object):
+    """
+    Redirects stdout and stderr to /dev/null, if required.
+
+    Parameters
+    ----------
+    stdout: stream
+         Destination of standard output
+    stderr: stream
+         Destination of standard errors
+
+    Notes
+    -----
+    This code was cribbed from @tstone2077 at http://codereview.stackexchange.com/questions/25417/is-there-a-better-way-to-make-a-function-silent-on-need
+    """
+    def __init__(self, stdout=None, stderr=None):
+        self.devnull = open(os.devnull,'w')
+        self._stdout = stdout or self.devnull or sys.stdout
+        self._stderr = stderr or self.devnull or sys.stderr
+
+    def __enter__(self):
+        self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
+        self.old_stdout.flush(); self.old_stderr.flush()
+        sys.stdout, sys.stderr = self._stdout, self._stderr
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self._stdout.flush(); self._stderr.flush()
+        sys.stdout = self.old_stdout
+        sys.stderr = self.old_stderr
+        self.devnull.close()

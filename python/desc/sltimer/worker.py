@@ -12,6 +12,7 @@ from matplotlib import pyplot as plt
 import matplotlib
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
+
 __all__ = ['SLTimer', 'spl']
 
 
@@ -99,7 +100,7 @@ class SLTimer(object):
         m=np.exp(s+t-normalize)
         ft=(Hbar/sigmaH**2+(phibar*t)/(Q*(sigmaPhi**2)))/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2)))
         fif=np.sqrt(np.pi/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2))))
-        return f*m*ft*fif 
+        return f*m*ft*fif
 
     def optimize_spline_model(self):
         '''
@@ -186,9 +187,9 @@ class SLTimer(object):
         spline_microlensing(self.lcs, self.ml_knotstep)
         return
 
-    #============================================= Primary workhorse method
+    #========================================= Primary workhorse method
 
-    def estimate_time_delays(self, method='pycs', microlensing='spline', agn='spline', error=None):
+    def estimate_time_delays(self, method='pycs', microlensing='spline', agn='spline', error=None, quietly=False):
         '''
         Measures time delays between images, by modeling all the light
         curves.
@@ -207,18 +208,40 @@ class SLTimer(object):
         Notes
         -----
         Provides both polynomial and spline time delays.
+
+        Parameters
+        ----------
+        method: string
+            Modeling package to use (currently only `pycs` is available)
+        microlensing: string
+            Model choice for microlensing light curves
+        agn: string
+            Model choice for intrinsic AGN variability
+        error: boolean
+            Estimate errors?
+        quietly: boolean
+            Redirect output to /dev/null?
         '''
+
         if method == 'pycs':
-            print "You are using the pycs method."
+            # print "You are using the pycs method."
+            pass
         else:
             print "The only available method is 'pycs' - exiting."
             return
 
+        if quietly:
+            as_requested = {'stdout':None, 'stderr':None}
+        else:
+            as_requested = {'stdout':sys.stdout, 'stderr':sys.stderr}
+
         # Tell the lightcurves that their model is going to include microlensing:
         if microlensing == 'polynomial':
-            self.add_polynomial_microlensing()
+            with SilentOperation(**as_requested):
+                self.add_polynomial_microlensing()
         elif microlensing == 'spline':
-            self.add_spline_microlensing()
+            with SilentOperation(**as_requested):
+                self.add_spline_microlensing()
         else:
             pass
         # Keep a record:
@@ -226,19 +249,19 @@ class SLTimer(object):
 
         # Optimize the model for both microlensing and intrinsic variability:
         if agn == 'spline':
-            self.agn = self.optimize_spline_model()
+            with SilentOperation(**as_requested):
+                self.agn = self.optimize_spline_model()
         else:
             print "Error: only free-knot spline models are available  for AGN variability at present."
             return
 
-        # Print out time delays:
-        self.report_time_delays()
-
         # Do error analysis, if required:
         if error == 'complete':
-            self.estimate_uncertainties()
+            with SilentOperation(**as_requested):
+                self.estimate_uncertainties()
         elif error == 'intrinsic variance':
-            self.find_intrinsic_variance()
+            with SilentOperation(**as_requested):
+                self.find_intrinsic_variance()
         else:
             return
 
@@ -274,7 +297,7 @@ class SLTimer(object):
 
     def generate_random_sample(self, rangeList, nsample):
         ndim = len(self.lcs)
-        #Generate samples 
+        #Generate samples
         if rangeList is None:
             rangeList = [[-100, 100]]*(ndim-1)
         d = []
@@ -351,8 +374,8 @@ class SLTimer(object):
     def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
                                     rangeList=None, outName="",
                                     save_file=True, samples=None):
-       	'''
-        compute the likelihood by Montecarlo method
+        '''
+        Compute the likelihood by Monte Carlo method
         '''
         from multiprocessing import Pool
         from functools import partial

@@ -1,4 +1,3 @@
-import pycs
 import os
 import numpy as np
 from pycs.gen.lc import factory

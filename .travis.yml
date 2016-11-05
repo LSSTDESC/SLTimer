@@ -40,6 +40,8 @@ script:
   # jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute  notebooks/PyCS_Tutorial.ipynb
   - jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_Tutorial.ipynb
   - jupyter nbconvert --ExecutePreprocessor.kernel_name=python --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_TDC2_Example.ipynb
+  - jupyter nbconvert --ExecutePreprocessor.kernel_name=python
+    --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_TDC2_Analysis.ipynb
   # Build the docs:
   - sphinx-build -b html -d _build/doctrees docs _build/html
 

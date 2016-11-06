@@ -10,6 +10,7 @@ import numpy as np
 from .reading import *
 from matplotlib import pyplot as plt
 import matplotlib
+import scipy as sp
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
 __all__ = ['SLTimer', 'spl']
@@ -85,7 +86,7 @@ class SLTimer(object):
 
         return
 
-    def prior(self, t):
+    def prior(self, t, positive_H=False):
         Hbar = self.Hbar
         sigmaH = self.sigmaH
         phibar = self.phibar
@@ -97,12 +98,16 @@ class SLTimer(object):
         t = ((Hbar/(sigmaH**2)+(phibar*t)/(Q*sigmaPhi**2))**2)/(1./(sigmaH**2)+(t**2)/((sigmaPhi**2)*(Q**2)))
         normalize = np.max(t)+s
         m = np.exp(s+t-normalize)
-        ft = (Hbar/sigmaH**2+(phibar*t)/(Q*(sigmaPhi**2)))/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2)))
-        fif = np.sqrt(np.pi/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2))))
-        return f*m*ft*fif 
+        b = (Hbar/sigmaH**2+(phibar*t)/(Q*(sigmaPhi**2)))/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2)))
+        a = 1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2))
+        if positive_H:
+            ft = (np.exp(-a*b**2)+np.sqrt(np.pi*a)*b*(sp.special.erf(np.sqrt(a)*b)+1))/(2*a)
+        else:
+            ft = b*np.sqrt(np.pi/a)
+        return f*m*ft
 
     def add_prior_to_sample(self, result):
-        prior = self.prior(result[:, 0])
+        prior = self.prior(result[:, 0], positive_H=True)
         original = np.zeros(result.shape)
         log_prior = np.zeros(result.shape)
         combined = np.zeros(result.shape)
@@ -332,15 +337,15 @@ class SLTimer(object):
         original = result[0]
         prior = result[1]
         combined = result[2]
-        fig = plt.figure(figsize=(5,10))
-        gs = gridspec.GridSpec(3,1, height_ratios=[4,4,4])
-        ax1 = fig.add_subplot(gs[0,0])
-        ax2 = fig.add_subplot(gs[1,0])
-        ax3 = fig.add_subplot(gs[2,0])
+        fig = plt.figure(figsize=(5, 10))
+        gs = gridspec.GridSpec(3, 1, height_ratios=[4, 4, 4])
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[1, 0])
+        ax3 = fig.add_subplot(gs[2, 0])
         gs.update(left=0.01, right=0.99, hspace=0.3)
-        ax1.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
-        ax2.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
-        ax3.ticklabel_format(style='sci',axis='y',scilimits=(0,0))
+        ax1.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        ax2.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        ax3.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
         self.internal_plot(result=original,
                            bins=bins, corner_plot=False,
                            ax=ax1, chisquare=True)

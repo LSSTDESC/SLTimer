@@ -87,6 +87,7 @@ class SLTimer(object):
         return
 
     def prior(self, t, positive_H=False):
+        t=-t ##Because the time convention is different in PyCS and TDC2
         Hbar = self.Hbar
         sigmaH = self.sigmaH
         phibar = self.phibar

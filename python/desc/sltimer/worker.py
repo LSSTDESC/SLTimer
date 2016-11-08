@@ -10,6 +10,7 @@ import numpy as np
 from .reading import *
 from matplotlib import pyplot as plt
 import matplotlib
+import scipy as sp
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
 
@@ -34,7 +35,7 @@ class SLTimer(object):
         self.sigmaH = 7
         self.phibar = None
         self.sigmaPhi = None
-        self.Q=0
+        self.Q = 0
         return
 
     def download(self, url, format='rdb', and_read=False):
@@ -86,21 +87,41 @@ class SLTimer(object):
 
         return
 
-    def prior(t):
-        Hbar=self.Hbar
-        sigmaH=self.sigmaH
-        phibar=self.phibar
-        sigmaPhi=self.sigmaPhi
-        Q=self.Q/(3.0*1E5)
+    def prior(self, t, positive_H=False):
+        t=-t ##Because the time convention is different in PyCS and TDC2
+        Hbar = self.Hbar
+        sigmaH = self.sigmaH
+        phibar = self.phibar
+        sigmaPhi = self.sigmaPhi
+        Q = self.Q/(3.0*1E5)
    # print(Q*phibar/Hbar)
-        f=1./(2*sigmaH*sigmaPhi*np.pi*Q)
-        s=-(Hbar)**2/(sigmaH**2)+(-phibar**2)/(sigmaPhi**2)
-        t=((Hbar/(sigmaH**2)+(phibar*t)/(Q*sigmaPhi**2))**2)/(1./(sigmaH**2)+(t**2)/((sigmaPhi**2)*(Q**2)))
-        normalize=np.max(t)+s
-        m=np.exp(s+t-normalize)
-        ft=(Hbar/sigmaH**2+(phibar*t)/(Q*(sigmaPhi**2)))/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2)))
-        fif=np.sqrt(np.pi/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2))))
-        return f*m*ft*fif
+        f = 1./(2*sigmaH*sigmaPhi*np.pi*Q)
+        s = -(Hbar)**2/(sigmaH**2)+(-phibar**2)/(sigmaPhi**2)
+        t = ((Hbar/(sigmaH**2)+(phibar*t)/(Q*sigmaPhi**2))**2)/(1./(sigmaH**2)+(t**2)/((sigmaPhi**2)*(Q**2)))
+        normalize = np.max(t)+s
+        m = np.exp(s+t-normalize)
+        b = (Hbar/sigmaH**2+(phibar*t)/(Q*(sigmaPhi**2)))/(1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2)))
+        a = 1./sigmaH**2+t**2/((sigmaPhi**2)*(Q**2))
+        if positive_H:
+            ft = (np.exp(-a*b**2)+np.sqrt(np.pi*a)*b*(sp.special.erf(np.sqrt(a)*b)+1))/(2*a)
+        else:
+            ft = b*np.sqrt(np.pi/a)
+        return f*m*ft
+
+    def add_prior_to_sample(self, result):
+        prior = self.prior(result[:, 0], positive_H=True)
+        original = np.zeros(result.shape)
+        log_prior = np.zeros(result.shape)
+        combined = np.zeros(result.shape)
+
+        original[:, 0] = result[:, 0]
+        log_prior[:, 0] = result[:, 0]
+        combined[:, 0] = result[:, 0]
+
+        original[:, 1] = -1./2.*result[:, 1]
+        log_prior[:, 1] = np.log(prior)
+        combined[:, 1] = original[:, 1]+log_prior[:, 1]
+        return [original, log_prior, combined]
 
     def optimize_spline_model(self):
         '''
@@ -321,27 +342,80 @@ class SLTimer(object):
 
     def plot_likelihood_from_file(self, file_name, chisquare=False, bins=20,
                                   outName="from_file_", corner_plot=True,
-                                  add_prior= True):
+                                  add_prior=False):
         result = np.loadtxt(file_name)
-        self.plot_likelihood(result, outName+file_name[-10:],
-                             chisquare=chisquare, bins=bins,
-                             corner_plot=corner_plot, add_prior=add_prior)
+        if add_prior:
+            self.plot_log_likelihood_with_prior(result,
+                                                outName+file_name[-10:],
+                                                bins=bins)
+        else:
+            self.plot_likelihood(result, outName+file_name[-10:],
+                                 chisquare=chisquare, bins=bins,
+                                 corner_plot=corner_plot)
+        return
+
+    def plot_log_likelihood_with_prior(self, result, outName,
+                                       bins=20):
+        import matplotlib.gridspec as gridspec
+        result = self.add_prior_to_sample(result)
+        original = result[0]
+        prior = result[1]
+        combined = result[2]
+        fig = plt.figure(figsize=(5, 10))
+        gs = gridspec.GridSpec(3, 1, height_ratios=[4, 4, 4])
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax2 = fig.add_subplot(gs[1, 0])
+        ax3 = fig.add_subplot(gs[2, 0])
+        gs.update(left=0.01, right=0.99, hspace=0.3)
+        ax1.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        ax2.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        ax3.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+        self.internal_plot(result=original,
+                           bins=bins, corner_plot=False,
+                           ax=ax1, chisquare=True)
+        ax1.set_ylabel(r'$log(L)$')
+        ax1.set_xlabel('')
+        self.internal_plot(result=prior,
+                           bins=bins, corner_plot=False,
+                           ax=ax2, chisquare=True)
+        ax2.set_ylabel(r'$log(L)$')
+        ax2.set_xlabel('')
+        self.internal_plot(result=combined,
+                           bins=bins, corner_plot=False,
+                           ax=ax3, chisquare=True)
+        ax3.set_ylabel(r'$log(L)$')
+
+        fig.suptitle("log likelihood")
+        fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
+                                                            combined.shape[0]))
         return
 
     def plot_likelihood(self, result, outName, plot_contours=True,
                         plot_density=True, chisquare=False, bins=20,
-                        corner_plot=True, add_prior=True):
+                        corner_plot=True, ax=None):
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+        newFig = self.internal_plot(result=result, plot_contours=plot_contours,
+                                    plot_density=plot_density,
+                                    chisquare=chisquare,
+                                    bins=bins, corner_plot=corner_plot, ax=ax)
+        if newFig is not None:
+            fig = newFig
+        title = r"$\chi^2 plot$"
+        fig.suptitle(title)
+        fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
+                    result.shape[0]))
+
+    def internal_plot(self, result, plot_contours=True,
+                      plot_density=True, chisquare=False, bins=20,
+                      corner_plot=True, ax=None):
         import corner
-        log = True
         sample = result[:, :-1]
         if not chisquare:
             weight = chi2_to_weight(result[:, -1])
-            title = "likelihood"
         else:
             weight = result[:, -1]
-           # weight = result[:, -1] - np.min(result[:, -1])
-            log = False
-            title = r"$\chi^2 plot$"
         if corner_plot:
             fig = corner.corner(sample, bins=bins,
                                 labels=[r'$\Delta t_{AB}(days)$',
@@ -356,20 +430,21 @@ class SLTimer(object):
             if sample.shape[1] != 1:
                 print("corner=False can only be true when there is only 1D sample")
             sample = sample.ravel()
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
             bins = np.linspace(sample.min(), sample.max(), bins)
-            wd, b = np.histogram(sample, bins=bins, weights=weight)
-            counts, b = np.histogram(sample, bins=bins)
+            mask = np.where(weight!=-np.inf)
+            wd, b = np.histogram(sample[mask], bins=bins, weights=weight[mask])
+            counts, b = np.histogram(sample[mask], bins=bins)
             bincentres = [(b[i]+b[i+1])/2. for i in range(len(b)-1)]
+            ax_min = max(sample.min(), -100)
+            ax_max = min(sample.max(), 100)
+            ax.set_xticks(np.linspace(ax_min, ax_max, 21), 5)
+            ax.set_xlim(sample.min(), sample.max())
             ax.set_xlabel(r'$\Delta t_{AB}(days)$')
             ax.set_ylabel(r'$\chi^2$')
             ax.step(bincentres, wd/counts, where='mid', color='k',
                     linestyle="-")
-        fig.suptitle(title)
-        fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
-                    result.shape[0]))
-        return
+            fig = None
+        return fig
 
     def compute_likelihood_simpleMC(self, nsample=1000, nprocess=5,
                                     rangeList=None, outName="",

@@ -37,7 +37,7 @@ class SLTimer(object):
         self.phibar = None
         self.sigmaPhi = None
         self.Q = 0
-        self.sigma_intrinsic = 0.5
+        self.sigma_intrinsic = 0.2
         return
 
     def rescale_noise(self):

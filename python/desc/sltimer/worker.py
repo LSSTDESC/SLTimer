@@ -36,7 +36,13 @@ class SLTimer(object):
         self.phibar = None
         self.sigmaPhi = None
         self.Q = 0
+        self.sigma_intrinsic = 31.6
         return
+
+    def rescale_noise(self):
+        print("Rescale noise of light curve to {0} times".format(self.sigma_intrinsic))
+        for lc in self.lcs:
+            lc.magerrs *= self.sigma_intrinsic
 
     def download(self, url, format='rdb', and_read=False):
         '''
@@ -117,8 +123,13 @@ class SLTimer(object):
         original[:, 0] = result[:, 0]
         log_prior[:, 0] = result[:, 0]
         combined[:, 0] = result[:, 0]
-
-        original[:, 1] = -1./2.*result[:, 1]
+        number_of_data = 0
+        noise_inv = 0
+        for lc in self.lcs:
+            number_of_data += len(lc)
+            noise_inv += sum(1./lc.magerrs)
+        original[:, 1] = -1./2.*result[:, 1] \
+            + number_of_data*np.log(1./np.sqrt(2*np.pi)) + noise_inv
         log_prior[:, 1] = np.log(prior)
         combined[:, 1] = original[:, 1]+log_prior[:, 1]
         return [original, log_prior, combined]
@@ -431,7 +442,7 @@ class SLTimer(object):
                 print("corner=False can only be true when there is only 1D sample")
             sample = sample.ravel()
             bins = np.linspace(sample.min(), sample.max(), bins)
-            mask = np.where(weight!=-np.inf)
+            mask = np.where(weight != -np.inf)
             wd, b = np.histogram(sample[mask], bins=bins, weights=weight[mask])
             counts, b = np.histogram(sample[mask], bins=bins)
             bincentres = [(b[i]+b[i+1])/2. for i in range(len(b)-1)]

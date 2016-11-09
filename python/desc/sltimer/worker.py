@@ -11,6 +11,7 @@ from .reading import *
 from matplotlib import pyplot as plt
 import matplotlib
 import scipy as sp
+import sys
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
 
@@ -36,14 +37,19 @@ class SLTimer(object):
         self.phibar = None
         self.sigmaPhi = None
         self.Q = 0
-        self.sigma_intrinsic = 31.6
+        self.sigma_intrinsic = 0.5
         return
 
     def rescale_noise(self):
-        print("Rescale noise of light curve to {0} times".format(self.sigma_intrinsic))
+        print("add additional noise {0}".format(self.sigma_intrinsic))
         for lc in self.lcs:
-            lc.magerrs *= self.sigma_intrinsic
+            lc.magerrs = np.sqrt(self.sigma_intrinsic**2 + lc.magerrs**2)
 
+    def reset_noise(self):
+        print("delete additional noise {0}".format(self.sigma_intrinsic))
+        for lc in self.lcs:
+            lc.magerrs = np.sqrt(-self.sigma_intrinsic**2 + lc.magerrs**2)
+            
     def download(self, url, format='rdb', and_read=False):
         '''
         Downloads the datafile from a url.

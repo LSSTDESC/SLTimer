@@ -38,17 +38,20 @@ class SLTimer(object):
         self.sigmaPhi = None
         self.Q = 0
         self.sigma_intrinsic = 0.2
+        self.noise_rescaled=False
         return
 
     def rescale_noise(self):
         print("add additional noise {0}".format(self.sigma_intrinsic))
         for lc in self.lcs:
             lc.magerrs = np.sqrt(self.sigma_intrinsic**2 + lc.magerrs**2)
+        self.noise_rescaled = True
 
     def reset_noise(self):
         print("delete additional noise {0}".format(self.sigma_intrinsic))
         for lc in self.lcs:
             lc.magerrs = np.sqrt(-self.sigma_intrinsic**2 + lc.magerrs**2)
+        self.noise_rescaled = False
             
     def download(self, url, format='rdb', and_read=False):
         '''

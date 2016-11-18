@@ -33,7 +33,7 @@ class SLTimer(object):
         self.ml_knotstep = 350
         self.knotstep = 20
         self.Hbar = 70.
-        self.sigmaH = 7
+        self.sigmaH = 7.
         self.phibar = None
         self.sigmaPhi = None
         self.Q = 0
@@ -197,11 +197,14 @@ class SLTimer(object):
             l.resetml()
         return
 
-    def whiten(self):
+    def whiten(self, seasonal=False):
         '''
         Whitens a set of multi-filter light curves to a single fictitious band.
         '''
-        self.lcs = whiten(self.lcs)
+        if seasonal:
+            self.lcs = whiten_season(self.lcs)
+        else:
+            self.lcs = whiten(self.lcs)
         return
 
     #===================================================== Microlensing
@@ -547,6 +550,9 @@ class SLTimer(object):
             if self.Nim == 4:
                 dt = {'AC': bestGuess[1]}
                 dt = {'AD': bestGuess[2]}
+        elif method == 'prior':
+            dt = {'AB': -1.*self.Q*self.phibar/(3.0*1E5*self.Hbar)}
+            print(dt)
         else:
             raise ValueError("Unrecognized initialization method '"+method+"'")
 

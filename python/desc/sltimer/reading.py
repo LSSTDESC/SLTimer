@@ -5,7 +5,7 @@ from pycs.gen.lc import factory
 
 __all__ = ['read_in_rdb_data', 'read_in_tdc2_data', 'get_tdc2_header',
            'tdc2import', 'factory', 'flexibleimport', 'flux2magnitude',
-           'select_bands', 'whiten', 'SilentOperation']
+           'select_bands', 'whiten', 'SilentOperation', 'whiten_season']
 
 # ======================================================================
 
@@ -318,6 +318,55 @@ def select_bands(lcs, bands):
         lc.cutmask()
     return lcs
 
+def whiten_season(lcs):
+    mu, sigma = mean_and_scatter(lcs)
+    print "whiten: before whitening, means =", mu
+    print "whiten: before whitening, scatters =", sigma
+
+    # How many different images do we have?
+    Nim = len(lcs)
+
+    # Get list of observation filters, and the names of the bands:
+    filters = np.array([])
+    Nobs = len(lcs[0].properties)
+    for k in range(Nobs):
+        filters = np.append(filters,lcs[0].properties[k]['band'])
+    bands = np.unique(filters)
+    print "whiten: detected bands:",str(bands)
+
+
+    # Which observations were taken in which band?
+    index = dict()
+    for band in bands:
+        index[band] = np.where(filters == band)[0]
+
+    # Loop over images:
+    for j in range(Nim):
+##
+        seasons = pycs.gen.sea.autofactory(lcs[j])
+        for season in seasons:
+            # Find mean mag in each filter's light curve:
+            indiv_mean = dict()
+            for band in bands:
+                indiv_mean[band] = \
+                    np.mean(lcs[j].mags[np.intersect1d(index[band], season.indices)])
+
+            # Now find the overall mean, and compute each filter's offsets:
+            overall_mean = np.mean(lcs[j].mags[season.indices])
+
+            offset = dict()
+            for band in bands:
+                offset[band] = indiv_mean[band] - overall_mean
+
+            # Finally, apply the offsets:
+            for band in bands:
+                lcs[j].mags[np.intersect1d(index[band], season.indices)] -= offset[band]
+
+    mu, sigma = mean_and_scatter(lcs)
+    print "whiten: after whitening, means =", mu
+    print "whiten: after whitening, scatters =", sigma
+
+    return lcs
 
 def whiten(lcs):
     """

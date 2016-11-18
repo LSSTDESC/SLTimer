@@ -37,17 +37,23 @@ class SLTimer(object):
         self.phibar = None
         self.sigmaPhi = None
         self.Q = 0
-        self.sigma_intrinsic = 0.2
+        self.sigma_intrinsic = 0
         self.noise_rescaled=False
         return
 
     def rescale_noise(self):
+        if self.noise_rescaled:
+            print("you cannot rescale noise twice")
+            return
         print("add additional noise {0}".format(self.sigma_intrinsic))
         for lc in self.lcs:
             lc.magerrs = np.sqrt(self.sigma_intrinsic**2 + lc.magerrs**2)
         self.noise_rescaled = True
 
     def reset_noise(self):
+        if self.noise_rescaled is False:
+            print("you cannot rest before rescale noise")
+            return
         print("delete additional noise {0}".format(self.sigma_intrinsic))
         for lc in self.lcs:
             lc.magerrs = np.sqrt(-self.sigma_intrinsic**2 + lc.magerrs**2)
@@ -122,6 +128,13 @@ class SLTimer(object):
         else:
             ft = b*np.sqrt(np.pi/a)
         return f*m*ft
+    def chisquare_to_loglikelihood(self, chisquare):
+        number_of_data = 0
+        lognoise_sum = 0
+        for lc in self.lcs:
+            number_of_data += len(lc)
+            lognoise_sum += np.log(lc/magerrs)
+        return -1./2.*chisquare-number_of_data/2.*np.log(2*np.pi)-lognoise_sum
 
     def add_prior_to_sample(self, result):
         prior = self.prior(result[:, 0], positive_H=True)
@@ -360,6 +373,8 @@ class SLTimer(object):
         for index in xrange(result.shape[1]-1):
             header += "   dt_"+names[index]
         header += "   chisquare"
+        header += "   log_likelihood"
+        header += "   sigma_intrinsic"
         np.savetxt(file_name, result, header=header, comments="# ")
         return
 
@@ -501,7 +516,12 @@ class SLTimer(object):
         print("#"*20)
         print("weighted time delays (dAB,dAC,dAD)(days) :",
               weight.T.dot(sample))
-        results = np.column_stack((sample, chisquare))
+        sigma_intric = [self.sigma_intrinsic]*len(sample)
+        results = np.column_stack((sample,
+                                   chisquare,
+                                   self.chisquare_to_loglikelihood(chisquare),
+                                   sigma_intric))
+
         if save_file:
             self.write_out_to(results, outName)
             self.plot_likelihood(results, outName)

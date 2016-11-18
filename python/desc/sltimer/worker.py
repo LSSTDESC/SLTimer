@@ -133,7 +133,7 @@ class SLTimer(object):
         lognoise_sum = 0
         for lc in self.lcs:
             number_of_data += len(lc)
-            lognoise_sum += np.log(lc/magerrs)
+            lognoise_sum += np.log(lc.magerrs)
         return -1./2.*chisquare-number_of_data/2.*np.log(2*np.pi)-lognoise_sum
 
     def add_prior_to_sample(self, result):

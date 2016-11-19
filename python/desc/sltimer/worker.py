@@ -133,7 +133,7 @@ class SLTimer(object):
         lognoise_sum = 0
         for lc in self.lcs:
             number_of_data += len(lc)
-            lognoise_sum += np.log(lc.magerrs)
+            lognoise_sum += np.sum(np.log(lc.magerrs))
         return -1./2.*chisquare-number_of_data/2.*np.log(2*np.pi)-lognoise_sum
 
     def add_prior_to_sample(self, result):
@@ -145,13 +145,10 @@ class SLTimer(object):
         original[:, 0] = result[:, 0]
         log_prior[:, 0] = result[:, 0]
         combined[:, 0] = result[:, 0]
-        number_of_data = 0
-        noise_inv = 0
-        for lc in self.lcs:
-            number_of_data += len(lc)
-            noise_inv += sum(1./lc.magerrs)
-        original[:, 1] = -1./2.*result[:, 1] \
-            + number_of_data*np.log(1./np.sqrt(2*np.pi)) + noise_inv
+        if len(result) < 3:
+            original[:, 1] = self.chisquare_to_loglikelihood(result[:, 1])
+        else:
+            original[:, 1] = result[:, 2]
         log_prior[:, 1] = np.log(prior)
         combined[:, 1] = original[:, 1]+log_prior[:, 1]
         return [original, log_prior, combined]

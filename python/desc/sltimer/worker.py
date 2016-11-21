@@ -17,7 +17,6 @@ matplotlib.use('Agg')
 
 __all__ = ['SLTimer', 'spl']
 
-
 class SLTimer(object):
     '''
     Worker class for ingesting strongly lensed image light curves, and
@@ -383,7 +382,7 @@ class SLTimer(object):
     def plot_likelihood_from_file(self, file_name,
                                   chisquare=False, likelihood=False, bins=20,
                                   outName="from_file_", corner_plot=True,
-                                  add_prior=False):
+                                  add_prior=False, batch_sigma=False):
         file = open(file_name)
         lines = file.readlines()
         file.close()
@@ -396,10 +395,13 @@ class SLTimer(object):
             for index, key in enumerate(keys):
                 result[key] = np.append(result[key], eval(array[index]))
         if add_prior:
-            result = self.add_prior_to_sample(result)
-            self.plot_log_likelihood_with_prior(result,
+            result_new = self.add_prior_to_sample(result)
+            if batch_sigma:
+                result_new.append(result['sigma_intrinsic'])
+            self.plot_log_likelihood_with_prior(result_new,
                                                 outName+file_name[-10:],
-                                                bins=bins)
+                                                bins=bins,
+                                                batch_sigma=batch_sigma)
         else:
             result_new = []
             for keys in result.keys():
@@ -417,35 +419,60 @@ class SLTimer(object):
         return
 
     def plot_log_likelihood_with_prior(self, result, outName,
-                                       bins=20):
+                                       bins=20, batch_sigma=False):
         import matplotlib.gridspec as gridspec
-        original = result[0]
-        prior = result[1]
-        combined = result[2]
+        if batch_sigma:
+            sigmaArr = np.unique(result[3])
+            sigmas = result[3]
+            originals = []
+            priors = []
+            combineds = []
+            for sigma in sigmaArr:
+                index = np.where(sigmas == sigma)
+                originals.append(result[0][index])
+                priors.append(result[1][index])
+                combineds.append(result[2][index])
         fig = plt.figure(figsize=(5, 10))
         gs = gridspec.GridSpec(3, 1, height_ratios=[4, 4, 4])
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[1, 0])
         ax3 = fig.add_subplot(gs[2, 0])
         gs.update(left=0.01, right=0.99, hspace=0.3)
-        self.internal_plot(result=original,
-                           bins=bins, corner_plot=False,
-                           ax=ax1, chisquare=True)
-        ax1.set_ylabel(r'$log(L)$')
-        ax1.set_xlabel('')
-        self.internal_plot(result=prior,
-                           bins=bins, corner_plot=False,
-                           ax=ax2, chisquare=True)
-        ax2.set_ylabel(r'$log(prior)$')
-        ax2.set_xlabel('')
-        self.internal_plot(result=combined,
-                           bins=bins, corner_plot=False,
-                           ax=ax3, chisquare=True)
-        ax3.set_ylabel(r'$log(posterior)$')
-
+        def plotBatch(axes, result_inside, labelcolor=None):
+            ax1 = axes[0]
+            ax2 = axes[1]
+            ax3 = axes[2]
+            original = result_inside[0]
+            prior = result_inside[1]
+            combined = result_inside[2]
+            self.internal_plot(result=original,
+                               bins=bins, corner_plot=False,
+                               ax=ax1, chisquare=True, labelcolor=labelcolor)
+            ax1.set_ylabel(r'$log(L)$')
+            ax1.set_xlabel('')
+            self.internal_plot(result=prior,
+                               bins=bins, corner_plot=False,
+                               ax=ax2, chisquare=True, labelcolor=labelcolor)
+            ax2.set_ylabel(r'$log(prior)$')
+            ax2.set_xlabel('')
+            self.internal_plot(result=combined,
+                               bins=bins, corner_plot=False,
+                               ax=ax3, chisquare=True, labelcolor=labelcolor)
+            ax3.set_ylabel(r'$log(posterior)$')
+        axes = [ax1, ax2, ax3]
+        if batch_sigma:
+            import matplotlib.cm as cm
+            colors = iter(cm.rainbow(np.linspace(0, 1, len(sigmaArr))))
+            for index, sigma in enumerate(sigmaArr):
+                result_new = [originals[index], priors[index], combineds[index]]
+                labelcolor = ["$\sigma_{int}=$"+str(sigma), next(colors)]
+                plotBatch(axes, result_new, labelcolor=labelcolor)
+        else:
+            plotBatch(axes, result)
+        plt.legend(loc=(1.05, 2.9))
         fig.suptitle("log likelihood")
         fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
-                                                            combined.shape[0]))
+                                                            result[0].shape[0]))
         return
 
     def plot_likelihood(self, result, outName, plot_contours=True,
@@ -471,7 +498,7 @@ class SLTimer(object):
 
     def internal_plot(self, result, plot_contours=True,
                       plot_density=True, chisquare=False, likelihood=False, bins=20,
-                      corner_plot=True, ax=None):
+                      corner_plot=True, ax=None, labelcolor=None):
         import corner
         sample = result[:, :-1]
         if not chisquare:
@@ -506,8 +533,14 @@ class SLTimer(object):
                 ax.set_ylabel(r'$log(L)$')
             else:
                 ax.set_ylabel(r'$\chi^2$')
-            ax.step(bincentres, wd/counts, where='mid', color='k',
-                    linestyle="-")
+            if labelcolor is not None:
+                color = labelcolor[1]
+                label = labelcolor[0]
+            else:
+                color = 'k'
+                label = None
+            ax.step(bincentres, wd/counts, where='mid', color=color,
+                    linestyle="-", label=label)
             import matplotlib.ticker as mtick
             ax.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
             fig = None

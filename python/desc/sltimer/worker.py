@@ -134,21 +134,22 @@ class SLTimer(object):
         for lc in self.lcs:
             number_of_data += len(lc)
             lognoise_sum += np.sum(np.log(lc.magerrs))
+        print(lognoise_sum)
         return -1./2.*chisquare-number_of_data/2.*np.log(2*np.pi)-lognoise_sum
 
     def add_prior_to_sample(self, result):
-        prior = self.prior(result[:, 0], positive_H=True)
-        original = np.zeros(result.shape)
-        log_prior = np.zeros(result.shape)
-        combined = np.zeros(result.shape)
+        prior = self.prior(result['dt_AB'], positive_H=True)
+        original = np.zeros((result['dt_AB'].shape[0], 2))
+        log_prior = np.zeros((result['dt_AB'].shape[0], 2))
+        combined = np.zeros((result['dt_AB'].shape[0], 2))
 
-        original[:, 0] = result[:, 0]
-        log_prior[:, 0] = result[:, 0]
-        combined[:, 0] = result[:, 0]
-        if len(result) < 3:
-            original[:, 1] = self.chisquare_to_loglikelihood(result[:, 1])
+        original[:, 0] = result['dt_AB']
+        log_prior[:, 0] = result['dt_AB']
+        combined[:, 0] = result['dt_AB']
+        if 'log_likelihood' not in result.keys():
+            original[:, 1] = self.chisquare_to_loglikelihood(result['chisquare'])
         else:
-            original[:, 1] = result[:, 2]
+            original[:, 1] = result['log_likelihood']
         log_prior[:, 1] = np.log(prior)
         combined[:, 1] = original[:, 1]+log_prior[:, 1]
         return [original, log_prior, combined]
@@ -364,35 +365,60 @@ class SLTimer(object):
     def write_out_to(self, result, outName):
         file_name = "{0}_delay_chi2_{1}_samples.txt".format(outName,
                                                             result.shape[0])
-        names = ["AB", "AC", "AD"]
+        print result.shape[1]
+        if result.shape[1]==4:
+            names = ["AB"]
+        else:
+            names = ["AB", "AC", "AD"]
         header = "Smaples time delay for simple montecarlo and their corresponding \
         chisquare. \n"
-        for index in xrange(result.shape[1]-1):
-            header += "   dt_"+names[index]
+        for item in names:
+            header += "   dt_"+item
         header += "   chisquare"
         header += "   log_likelihood"
         header += "   sigma_intrinsic"
         np.savetxt(file_name, result, header=header, comments="# ")
         return
 
-    def plot_likelihood_from_file(self, file_name, chisquare=False, bins=20,
+    def plot_likelihood_from_file(self, file_name,
+                                  chisquare=False, likelihood=False, bins=20,
                                   outName="from_file_", corner_plot=True,
                                   add_prior=False):
-        result = np.loadtxt(file_name)
+        file = open(file_name)
+        lines = file.readlines()
+        file.close()
+        keys = " ".join(lines[1].split()).split()[1:]
+        result = {}
+        for key in keys:
+            result[key] = np.array([])
+        for l in lines[2:]:
+            array = l.split()
+            for index, key in enumerate(keys):
+                result[key] = np.append(result[key], eval(array[index]))
         if add_prior:
+            result = self.add_prior_to_sample(result)
             self.plot_log_likelihood_with_prior(result,
                                                 outName+file_name[-10:],
                                                 bins=bins)
         else:
-            self.plot_likelihood(result, outName+file_name[-10:],
+            result_new = []
+            for keys in result.keys():
+                if 'dt' in keys:
+                    result_new.append(result[keys])
+            if likelihood:
+                result_new.append(result['log_likelihood'])
+            else:
+                result_new.append(result['chisquare'])
+            result_new = np.array(result_new)
+            result_new = result_new.T
+            self.plot_likelihood(result_new, outName+file_name[-10:],
                                  chisquare=chisquare, bins=bins,
-                                 corner_plot=corner_plot)
+                                 corner_plot=corner_plot, likelihood=likelihood)
         return
 
     def plot_log_likelihood_with_prior(self, result, outName,
                                        bins=20):
         import matplotlib.gridspec as gridspec
-        result = self.add_prior_to_sample(result)
         original = result[0]
         prior = result[1]
         combined = result[2]
@@ -402,9 +428,6 @@ class SLTimer(object):
         ax2 = fig.add_subplot(gs[1, 0])
         ax3 = fig.add_subplot(gs[2, 0])
         gs.update(left=0.01, right=0.99, hspace=0.3)
-        ax1.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-        ax2.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
-        ax3.ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
         self.internal_plot(result=original,
                            bins=bins, corner_plot=False,
                            ax=ax1, chisquare=True)
@@ -413,12 +436,12 @@ class SLTimer(object):
         self.internal_plot(result=prior,
                            bins=bins, corner_plot=False,
                            ax=ax2, chisquare=True)
-        ax2.set_ylabel(r'$log(L)$')
+        ax2.set_ylabel(r'$log(prior)$')
         ax2.set_xlabel('')
         self.internal_plot(result=combined,
                            bins=bins, corner_plot=False,
                            ax=ax3, chisquare=True)
-        ax3.set_ylabel(r'$log(L)$')
+        ax3.set_ylabel(r'$log(posterior)$')
 
         fig.suptitle("log likelihood")
         fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
@@ -427,23 +450,27 @@ class SLTimer(object):
 
     def plot_likelihood(self, result, outName, plot_contours=True,
                         plot_density=True, chisquare=False, bins=20,
-                        corner_plot=True, ax=None):
+                        corner_plot=True, ax=None, likelihood=False):
         if ax is None:
             fig = plt.figure()
             ax = fig.add_subplot(111)
         newFig = self.internal_plot(result=result, plot_contours=plot_contours,
                                     plot_density=plot_density,
                                     chisquare=chisquare,
-                                    bins=bins, corner_plot=corner_plot, ax=ax)
+                                    bins=bins, corner_plot=corner_plot, ax=ax,
+                                    likelihood=likelihood)
         if newFig is not None:
             fig = newFig
-        title = r"$\chi^2 plot$"
+        if likelihood:
+            title = r"$log(likelihood) plot$"
+        else:
+            title = r"$\chi^2 plot$"
         fig.suptitle(title)
         fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
                     result.shape[0]))
 
     def internal_plot(self, result, plot_contours=True,
-                      plot_density=True, chisquare=False, bins=20,
+                      plot_density=True, chisquare=False, likelihood=False, bins=20,
                       corner_plot=True, ax=None):
         import corner
         sample = result[:, :-1]
@@ -475,9 +502,14 @@ class SLTimer(object):
             ax.set_xticks(np.linspace(ax_min, ax_max, 21), 5)
             ax.set_xlim(sample.min(), sample.max())
             ax.set_xlabel(r'$\Delta t_{AB}(days)$')
-            ax.set_ylabel(r'$\chi^2$')
+            if likelihood:
+                ax.set_ylabel(r'$log(L)$')
+            else:
+                ax.set_ylabel(r'$\chi^2$')
             ax.step(bincentres, wd/counts, where='mid', color='k',
                     linestyle="-")
+            import matplotlib.ticker as mtick
+            ax.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
             fig = None
         return fig
 

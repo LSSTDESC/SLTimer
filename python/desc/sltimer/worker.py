@@ -382,7 +382,8 @@ class SLTimer(object):
     def plot_likelihood_from_file(self, file_name,
                                   chisquare=False, likelihood=False, bins=20,
                                   outName="from_file_", corner_plot=True,
-                                  add_prior=False, batch_sigma=False):
+                                  add_prior=False, batch_sigma=False,
+                                  method="plot_log_file"):
         file = open(file_name)
         lines = file.readlines()
         file.close()
@@ -396,12 +397,18 @@ class SLTimer(object):
                 result[key] = np.append(result[key], eval(array[index]))
         if add_prior:
             result_new = self.add_prior_to_sample(result)
-            if batch_sigma:
-                result_new.append(result['sigma_intrinsic'])
-            self.plot_log_likelihood_with_prior(result_new,
-                                                outName+file_name[-10:],
-                                                bins=bins,
-                                                batch_sigma=batch_sigma)
+            if method == "plot exp in same graph":
+                self.plot_explikelihood_same_file(result_new,
+                                                  outName+file_name[-10:],
+                                                  bins=bins)
+
+            else:
+                if batch_sigma:
+                    result_new.append(result['sigma_intrinsic'])
+                self.plot_log_likelihood_with_prior(result_new,
+                                                    outName+file_name[-10:],
+                                                    bins=bins,
+                                                    batch_sigma=batch_sigma)
         else:
             result_new = []
             for keys in result.keys():
@@ -417,6 +424,39 @@ class SLTimer(object):
                                  chisquare=chisquare, bins=bins,
                                  corner_plot=corner_plot, likelihood=likelihood)
         return
+
+    def plot_explikelihood_same_file(self, result, outName,
+                                     bins=20):
+        fig = plt.figure(figsize=(5, 10))
+        ax = fig.add_subplot(111)
+        for item in result:
+            exp_prop = np.exp(item[:, -1]-np.max(item[:, -1]))
+            item[:, -1] = exp_prop/(np.sum(exp_prop)*(item[1, 0]-item[0, 0]))
+            print np.sum(exp_prop)
+        original = result[0]
+        prior = result[1]
+        combined = result[2]
+        labelcolor = ["likelihood", "b"]
+        self.internal_plot(result=original,
+                           bins=bins, corner_plot=False,
+                           ax=ax, chisquare=True, labelcolor=labelcolor)
+        labelcolor = ["prior", "k"]
+        self.internal_plot(result=prior,
+                           bins=bins, corner_plot=False,
+                           ax=ax, chisquare=True, labelcolor=labelcolor)
+
+        labelcolor = ["posterior", "r"]
+        self.internal_plot(result=combined,
+                           bins=bins, corner_plot=False,
+                           ax=ax, chisquare=True, labelcolor=labelcolor)
+        ax.set_ylabel(r"probability")
+        plt.legend(loc=(1.05, 0.9))
+        fig.suptitle("prior_likelihood_posterior")
+        fig.savefig("{0}_prior_likelihood_posterior_{1}_samples.png".format(
+                    outName, result[0].shape[0]))
+        return
+
+
 
     def plot_log_likelihood_with_prior(self, result, outName,
                                        bins=20, batch_sigma=False):

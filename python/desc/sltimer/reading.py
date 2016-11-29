@@ -319,6 +319,13 @@ def select_bands(lcs, bands):
     return lcs
 
 def whiten_season(lcs):
+    """
+    Function to whiten the lightcurve data in the case of multiple
+    filters.
+    We whiten the data by offseting the mag in each season, such that the mean
+    magnitude of data in different band is the same. (but not the same for
+    data in different seasons.) 
+    """
     mu, sigma = mean_and_scatter(lcs)
     print "whiten: before whitening, means =", mu
     print "whiten: before whitening, scatters =", sigma

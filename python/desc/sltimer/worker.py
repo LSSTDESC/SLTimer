@@ -9,6 +9,7 @@ import pycs
 import numpy as np
 from .reading import *
 from matplotlib import pyplot as plt
+import matplotlib.cm as cm
 import matplotlib
 import scipy as sp
 import sys
@@ -379,11 +380,7 @@ class SLTimer(object):
         np.savetxt(file_name, result, header=header, comments="# ")
         return
 
-    def plot_likelihood_from_file(self, file_name,
-                                  chisquare=False, likelihood=False, bins=20,
-                                  outName="from_file_", corner_plot=True,
-                                  add_prior=False, batch_sigma=False,
-                                  method="plot_log_file"):
+    def read_likelihood_file(self, file_name):
         file = open(file_name)
         lines = file.readlines()
         file.close()
@@ -395,12 +392,65 @@ class SLTimer(object):
             array = l.split()
             for index, key in enumerate(keys):
                 result[key] = np.append(result[key], eval(array[index]))
+        return result
+
+    def batch_summarize_posterior(self, files=[], truth=[], outName="",
+                                  bins=20, plot_range=None, prior=False):
+        results = []
+        if prior:
+            number=1
+        else:
+            number=2
+        for file in files:
+            results.append(np.load(file))
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        colors = iter(cm.rainbow(np.linspace(0, 1, len(files))))
+        posteriors=[]
+        def find_nearest(array,value):
+            idx = (np.abs(array-value)).argmin()
+            return idx
+        halftile=[]
+        for index, result in enumerate(results):
+            results[index] = self.plot_explikelihood_same_file(result, 
+                                              bins=bins, plot_range=plot_range,
+                                              shift=-truth[index], axes=ax,
+                                              posteriorOnly=True,
+                                              posteriorlabelcolor=["data"+str(index+1),
+                                                                   next(colors)],
+                                              number=number
+                                              )
+            posterior=results[index][number]
+            posteriors.append(posterior)
+            step=posterior[1,0] - posterior[0,0]
+            halftile.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.5)]-truth[index])
+        ax.set_xlabel("$\Delta t - \Delta t_{True}(days)$")
+#        fig.suptitle("summarize posterior")
+        fig.savefig("{0}_summary.png".format(outName), bbox_inches='tight')
+
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+        ax.hist(halftile, 50, facecolor='green', alpha=0.75)
+        ax.set_xlabel("$\Delta t - \Delta t_{True}(days)$")
+        ax.set_ylabel("number of dataset")
+        fig.savefig("{0}_summary_hist.png".format(outName))
+
+    def plot_likelihood_from_file(self, file_name,
+                                  chisquare=False, likelihood=False, bins=20,
+                                  outName="from_file_", corner_plot=True,
+                                  add_prior=False, batch_sigma=False,
+                                  method="plot_log_file", plot_range=None,
+                                  shift=0):
+        result = self.read_likelihood_file(file_name)
         if add_prior:
             result_new = self.add_prior_to_sample(result)
+            np.save(outName+"prior_likelihood_posterior.npy", result_new)
             if method == "plot exp in same graph":
                 self.plot_explikelihood_same_file(result_new,
                                                   outName+file_name[-10:],
-                                                  bins=bins)
+                                                  bins=bins,
+                                                  plot_range=plot_range,
+                                                  shift=shift)
 
             else:
                 if batch_sigma:
@@ -408,7 +458,8 @@ class SLTimer(object):
                 self.plot_log_likelihood_with_prior(result_new,
                                                     outName+file_name[-10:],
                                                     bins=bins,
-                                                    batch_sigma=batch_sigma)
+                                                    batch_sigma=batch_sigma,
+                                                    plot_range=plot_range)
         else:
             result_new = []
             for keys in result.keys():
@@ -422,44 +473,56 @@ class SLTimer(object):
             result_new = result_new.T
             self.plot_likelihood(result_new, outName+file_name[-10:],
                                  chisquare=chisquare, bins=bins,
-                                 corner_plot=corner_plot, likelihood=likelihood)
+                                 corner_plot=corner_plot,
+                                 likelihood=likelihood, plot_range=plot_range)
         return
 
-    def plot_explikelihood_same_file(self, result, outName,
-                                     bins=20):
-        fig = plt.figure(figsize=(5, 10))
-        ax = fig.add_subplot(111)
+    def plot_explikelihood_same_file(self, result, outName="",
+                                     bins=20, plot_range=None, shift=0,
+                                     axes=None, posteriorOnly=False,
+                                     posteriorlabelcolor=None, number=2):
+        if axes is None:
+            fig = plt.figure(figsize=(5, 10))
+            ax = fig.add_subplot(111)
+        else:
+            ax = axes
         for item in result:
             exp_prop = np.exp(item[:, -1]-np.max(item[:, -1]))
             item[:, -1] = exp_prop/(np.sum(exp_prop)*(item[1, 0]-item[0, 0]))
-            print np.sum(exp_prop)
         original = result[0]
         prior = result[1]
         combined = result[2]
-        labelcolor = ["likelihood", "b"]
-        self.internal_plot(result=original,
+        if not posteriorOnly:
+            labelcolor = ["likelihood", "b"]
+            self.internal_plot(result=original,
+                               bins=bins, corner_plot=False,
+                               ax=ax, chisquare=True, labelcolor=labelcolor,
+                               plot_range=plot_range, shift=shift)
+            labelcolor = ["prior", "k"]
+            self.internal_plot(result=prior,
+                               bins=bins, corner_plot=False,
+                               ax=ax, chisquare=True, labelcolor=labelcolor,
+                               plot_range=plot_range, shift=shift)
+        if posteriorlabelcolor is None:
+            labelcolor = ["posterior", "r"]
+        else:
+            labelcolor = posteriorlabelcolor
+        self.internal_plot(result=result[number],
                            bins=bins, corner_plot=False,
-                           ax=ax, chisquare=True, labelcolor=labelcolor)
-        labelcolor = ["prior", "k"]
-        self.internal_plot(result=prior,
-                           bins=bins, corner_plot=False,
-                           ax=ax, chisquare=True, labelcolor=labelcolor)
-
-        labelcolor = ["posterior", "r"]
-        self.internal_plot(result=combined,
-                           bins=bins, corner_plot=False,
-                           ax=ax, chisquare=True, labelcolor=labelcolor)
+                           ax=ax, chisquare=True, labelcolor=labelcolor,
+                           plot_range=plot_range, shift=shift)
         ax.set_ylabel(r"probability")
-        plt.legend(loc=(1.05, 0.9))
-        fig.suptitle("prior_likelihood_posterior")
-        fig.savefig("{0}_prior_likelihood_posterior_{1}_samples.png".format(
-                    outName, result[0].shape[0]))
-        return
+        plt.legend(loc='lower left', bbox_to_anchor=(1.05, 0))
+        if axes is None:
+            fig.suptitle("prior_likelihood_posterior")
+            fig.savefig("{0}_prior_likelihood_posterior_{1}_samples.png".format(outName, result[0].shape[0]))
+        return result
 
 
 
     def plot_log_likelihood_with_prior(self, result, outName,
-                                       bins=20, batch_sigma=False):
+                                       bins=20, batch_sigma=False,
+                                       plot_range=None):
         import matplotlib.gridspec as gridspec
         if batch_sigma:
             sigmaArr = np.unique(result[3])
@@ -487,21 +550,23 @@ class SLTimer(object):
             combined = result_inside[2]
             self.internal_plot(result=original,
                                bins=bins, corner_plot=False,
-                               ax=ax1, chisquare=True, labelcolor=labelcolor)
+                               ax=ax1, chisquare=True, labelcolor=labelcolor,
+                               plot_range=plot_range)
             ax1.set_ylabel(r'$log(L)$')
             ax1.set_xlabel('')
             self.internal_plot(result=prior,
                                bins=bins, corner_plot=False,
-                               ax=ax2, chisquare=True, labelcolor=labelcolor)
+                               ax=ax2, chisquare=True, labelcolor=labelcolor,
+                               plot_range=plot_range)
             ax2.set_ylabel(r'$log(prior)$')
             ax2.set_xlabel('')
             self.internal_plot(result=combined,
                                bins=bins, corner_plot=False,
-                               ax=ax3, chisquare=True, labelcolor=labelcolor)
+                               ax=ax3, chisquare=True, labelcolor=labelcolor,
+                               plot_range=plot_range)
             ax3.set_ylabel(r'$log(posterior)$')
         axes = [ax1, ax2, ax3]
         if batch_sigma:
-            import matplotlib.cm as cm
             colors = iter(cm.rainbow(np.linspace(0, 1, len(sigmaArr))))
             for index, sigma in enumerate(sigmaArr):
                 result_new = [originals[index], priors[index], combineds[index]]
@@ -517,7 +582,8 @@ class SLTimer(object):
 
     def plot_likelihood(self, result, outName, plot_contours=True,
                         plot_density=True, chisquare=False, bins=20,
-                        corner_plot=True, ax=None, likelihood=False):
+                        corner_plot=True, ax=None, likelihood=False,
+                        plot_range=None):
         if ax is None:
             fig = plt.figure()
             ax = fig.add_subplot(111)
@@ -525,7 +591,8 @@ class SLTimer(object):
                                     plot_density=plot_density,
                                     chisquare=chisquare,
                                     bins=bins, corner_plot=corner_plot, ax=ax,
-                                    likelihood=likelihood)
+                                    likelihood=likelihood,
+                                    plot_range=plot_range)
         if newFig is not None:
             fig = newFig
         if likelihood:
@@ -538,7 +605,8 @@ class SLTimer(object):
 
     def internal_plot(self, result, plot_contours=True,
                       plot_density=True, chisquare=False, likelihood=False, bins=20,
-                      corner_plot=True, ax=None, labelcolor=None):
+                      corner_plot=True, ax=None, labelcolor=None,
+                      plot_range=None, shift=0):
         import corner
         sample = result[:, :-1]
         if not chisquare:
@@ -558,17 +626,25 @@ class SLTimer(object):
         else:
             if sample.shape[1] != 1:
                 print("corner=False can only be true when there is only 1D sample")
-            sample = sample.ravel()
-            bins = np.linspace(sample.min(), sample.max(), bins)
+            sample = sample.ravel()+shift
+            if plot_range is not None:
+                bins = np.linspace(plot_range[0], plot_range[1], bins)
+            else:
+                bins = np.linspace(sample.min(), sample.max(), bins)
             mask = np.where(weight != -np.inf)
             wd, b = np.histogram(sample[mask], bins=bins, weights=weight[mask])
             counts, b = np.histogram(sample[mask], bins=bins)
             bincentres = [(b[i]+b[i+1])/2. for i in range(len(b)-1)]
             ax_min = max(sample.min(), -100)
             ax_max = min(sample.max(), 100)
-            ax.set_xticks(np.linspace(ax_min, ax_max, 21), 5)
-            ax.set_xlim(sample.min(), sample.max())
-            ax.set_xlabel(r'$\Delta t_{AB}(days)$')
+            if plot_range is not None:
+                ax.set_xticks(np.linspace(plot_range[0], plot_range[1], 21), 5)
+                ax.set_xlim(plot_range[0], plot_range[1])
+            else:
+                ax.set_xticks(np.linspace(ax_min, ax_max, 21), 5)
+                ax.set_xlim(sample.min(), sample.max())
+            if shift == 0:
+                ax.set_xlabel(r'$\Delta t_{AB}(days)$')
             if likelihood:
                 ax.set_ylabel(r'$log(L)$')
             else:

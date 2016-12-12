@@ -395,7 +395,8 @@ class SLTimer(object):
         return result
 
     def batch_summarize_posterior(self, files=[], truth=[], outName="",
-                                  bins=20, plot_range=None, prior=False):
+                                  bins=20, plot_range=None, prior=False,
+                                  colors=None):
         results = []
         if prior:
             number=1
@@ -405,7 +406,6 @@ class SLTimer(object):
             results.append(np.load(file))
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        colors = iter(cm.rainbow(np.linspace(0, 1, len(files))))
         posteriors=[]
         def find_nearest(array,value):
             idx = (np.abs(array-value)).argmin()
@@ -417,7 +417,7 @@ class SLTimer(object):
                                               shift=-truth[index], axes=ax,
                                               posteriorOnly=True,
                                               posteriorlabelcolor=["data"+str(index+1),
-                                                                   next(colors)],
+                                                                   colors[index]],
                                               number=number
                                               )
             posterior=results[index][number]
@@ -440,7 +440,7 @@ class SLTimer(object):
                                   outName="from_file_", corner_plot=True,
                                   add_prior=False, batch_sigma=False,
                                   method="plot_log_file", plot_range=None,
-                                  shift=0):
+                                  shift=0, posteriorlabelcolor=None):
         result = self.read_likelihood_file(file_name)
         if add_prior:
             result_new = self.add_prior_to_sample(result)
@@ -450,7 +450,8 @@ class SLTimer(object):
                                                   outName+file_name[-10:],
                                                   bins=bins,
                                                   plot_range=plot_range,
-                                                  shift=shift)
+                                                  shift=shift,
+                                                  posteriorlabelcolor=posteriorlabelcolor)
 
             else:
                 if batch_sigma:
@@ -459,7 +460,8 @@ class SLTimer(object):
                                                     outName+file_name[-10:],
                                                     bins=bins,
                                                     batch_sigma=batch_sigma,
-                                                    plot_range=plot_range)
+                                                    plot_range=plot_range,
+                                                    posteriorlabelcolor=posteriorlabelcolor)
         else:
             result_new = []
             for keys in result.keys():
@@ -493,7 +495,7 @@ class SLTimer(object):
         prior = result[1]
         combined = result[2]
         if not posteriorOnly:
-            labelcolor = ["likelihood", "b"]
+            labelcolor = ["likelihood", "darkolivegreen"]
             self.internal_plot(result=original,
                                bins=bins, corner_plot=False,
                                ax=ax, chisquare=True, labelcolor=labelcolor,
@@ -522,7 +524,8 @@ class SLTimer(object):
 
     def plot_log_likelihood_with_prior(self, result, outName,
                                        bins=20, batch_sigma=False,
-                                       plot_range=None):
+                                       plot_range=None,
+                                       posteriorlabelcolor=None):
         import matplotlib.gridspec as gridspec
         if batch_sigma:
             sigmaArr = np.unique(result[3])
@@ -556,13 +559,15 @@ class SLTimer(object):
             ax1.set_xlabel('')
             self.internal_plot(result=prior,
                                bins=bins, corner_plot=False,
-                               ax=ax2, chisquare=True, labelcolor=labelcolor,
+                               ax=ax2, chisquare=True,
+                               labelcolor=[None,'darkolivegreen'],
                                plot_range=plot_range)
             ax2.set_ylabel(r'$log(prior)$')
             ax2.set_xlabel('')
             self.internal_plot(result=combined,
                                bins=bins, corner_plot=False,
-                               ax=ax3, chisquare=True, labelcolor=labelcolor,
+                               ax=ax3, chisquare=True,
+                               labelcolor=posteriorlabelcolor,
                                plot_range=plot_range)
             ax3.set_ylabel(r'$log(posterior)$')
         axes = [ax1, ax2, ax3]
@@ -571,6 +576,8 @@ class SLTimer(object):
             for index, sigma in enumerate(sigmaArr):
                 result_new = [originals[index], priors[index], combineds[index]]
                 labelcolor = ["$\sigma_{int}=$"+str(sigma), next(colors)]
+                if posteriorlabelcolor is None:
+                    posteriorlabelcolor = labelcolor
                 plotBatch(axes, result_new, labelcolor=labelcolor)
         else:
             plotBatch(axes, result)
@@ -635,13 +642,13 @@ class SLTimer(object):
             wd, b = np.histogram(sample[mask], bins=bins, weights=weight[mask])
             counts, b = np.histogram(sample[mask], bins=bins)
             bincentres = [(b[i]+b[i+1])/2. for i in range(len(b)-1)]
-            ax_min = max(sample.min(), -100)
-            ax_max = min(sample.max(), 100)
+            ax_min = max(sample.min(), -150)
+            ax_max = min(sample.max(), 150)
             if plot_range is not None:
-                ax.set_xticks(np.linspace(plot_range[0], plot_range[1], 21), 5)
+                ax.set_xticks(np.linspace(plot_range[0], plot_range[1], 31), 5)
                 ax.set_xlim(plot_range[0], plot_range[1])
             else:
-                ax.set_xticks(np.linspace(ax_min, ax_max, 21), 5)
+                ax.set_xticks(np.linspace(ax_min, ax_max, 31), 5)
                 ax.set_xlim(sample.min(), sample.max())
             if shift == 0:
                 ax.set_xlabel(r'$\Delta t_{AB}(days)$')

@@ -67,8 +67,8 @@ script:
   # branch named after the dev branch.
   - if [ "$TRAVIS_BRANCH" == "master" ]; then REMOTEBRANCH="pdf" ; fi
   - if [ "$TRAVIS_BRANCH" != "master" ]; then REMOTEBRANCH="latest/$TRAVIS_BRANCH" ; fi
-  # Run coveralls. Should be done after_success, really - but here shoudl be good enough.
-  - coveralls
+  # Run coveralls. Should be done after_success - putting it here fails, with error 'Couldn't find a repository matching this job: url'.
+  # - coveralls
 
 # Finally, deploy the PDF by force-pushing to an otherwise empty
 # orphan branch (ie one with no history). This saves the repo from

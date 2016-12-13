@@ -1,9 +1,25 @@
 language: python
 
+# LaTeX needs installing carefully, apparently:
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y gsl-bin libgsl0-dev
+  - sudo apt-get install latexmk
+  - sudo apt-get install latex-xcolor
+addons:
+    apt:
+        packages:
+            - texlive-generic-recommended
+            - texlive-latex-recommended
+            - texlive-latex-extra
+            - texlive-fonts-recommended
+            - texlive-fonts-extra
+            - texlive-publishers
 install:
-  - sudo apt-get update
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
+  # Last bit of LaTeX stuff:
+  - sudo apt-get install chktex
+  - sudo apt-get install dvipng
+  # Saves some downloading if the Python version is the same.
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
     else
@@ -20,17 +36,7 @@ install:
   - pip install coveralls
   # And finally we set up SLTimer:
   - source setup/setup.sh
-  # Set up to run jupyter notebooks and latex:
-  - sudo apt-get install latexmk
-  - sudo apt-get install latex-xcolor
-  - sudo apt-get install texlive-latex-recommended
-  - sudo apt-get install texlive-latex-extra
-  - sudo apt-get install texlive-fonts-recommended
-  - sudo apt-get install texlive-generic-recommended
-  - sudo apt-get install texlive-fonts-extra
-  - sudo apt-get install texlive-publishers
-  - sudo apt-get install chktex
-  - sudo apt-get install dvipng
+  # Set up to run jupyter notebooks:
   - conda install jupyter
   - pip install nbconvert
   # Set up to build docs:
@@ -61,6 +67,8 @@ script:
   # branch named after the dev branch.
   - if [ "$TRAVIS_BRANCH" == "master" ]; then REMOTEBRANCH="pdf" ; fi
   - if [ "$TRAVIS_BRANCH" != "master" ]; then REMOTEBRANCH="latest/$TRAVIS_BRANCH" ; fi
+  # Run coveralls. Should be done after_success - putting it here fails, with error 'Couldn't find a repository matching this job: url'.
+  # - coveralls
 
 # Finally, deploy the PDF by force-pushing to an otherwise empty
 # orphan branch (ie one with no history). This saves the repo from
@@ -71,6 +79,5 @@ after_success: |
     git rm -rf .
     git add -f "$PAPER"
     git -c user.name='travis' -c user.email='travis' commit -m init
-    git push -q -f https://drphilmarshall:$GITHUB_API_KEY@github.com/DarkEnergyScienceCollaboration/start_paper "$REMOTEBRANCH"
+    git push -q -f https://drphilmarshall:$GITHUB_API_KEY@github.com/LSSTDESC/SLTimer "$REMOTEBRANCH"
   fi
-  - coveralls

@@ -44,7 +44,7 @@ tarfiles=$(figures) $(tables) $(styles) $(bibs) $(source)
 # Interpret `make` with no target as `make tex`, a latex Note.
 # At present, if the default_format is anything other than
 # [apj|apjl|mnras|prd|prl|emulateapj], a latex Note is made.
-# In future, we could think of using `make` to eg run the ipynb 
+# In future, we could think of using `make` to eg run the ipynb
 # notebook and make PDF from the output, but this has not been
 # implemented yet.
 all: export flag=\def\flag{$(default)}
@@ -58,12 +58,12 @@ touch:
 
 #http://journals.aas.org/authors/aastex/linux.html
 #change the compiler call to allow a "." file
-# 
+#
 main :
-	latexmk -g -pdf  \
+	latexmk -g -f -pdf  \
 	-pdflatex='openout_any=a pdflatex %O -interaction=nonstopmode "${flag}\input{%S}"'  \
 	${main}
-# 
+#
 
 tar : main
 	mkdir -p ${tardir}

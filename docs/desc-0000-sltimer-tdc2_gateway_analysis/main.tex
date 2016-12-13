@@ -155,21 +155,38 @@ After finding the optimal $\sigma_{intrinsic}$, we rescale the noise of light cu
 
 
 \subsection{Summary of all ten gateway data sets}
-Fig \ref{fig:summary_post} and fig \ref{fig:summary_prior} show the posterior and prior distributions for all 10 data, which are also summarized in Table \ref{tab:summary}. 
+Fig \ref{fig:summary_post} and fig \ref{fig:summary_prior} show the posterior and prior distributions for all 10 data, which are also summarized in Table \ref{tab:summary}.  We also compute the precision, defined as 
+\begin{equation}
+P=\frac{1}{N} \Sigma_i (\frac{\delta t_{i, True}}{\Delta t_i})
+\end{equation}
+and the accuracy
+\begin{equation}
+A = \frac{1}{N} \Sigma_i (\frac{\Delta t_i-\Delta t_{i, True}}{\Delta t_i}),
+\end{equation}
+where N is number of data, $\Delta t_i$ is the median of posterior, and $\delta t_i$ is the error of time delay, estimated by halfwidth of $68\%$ confidence region of posterior. For this ten gateway data, we reach P=0.040 and A=0.068
 \begin{figure}[!h]
 \includegraphics[width=\textwidth, height=15cm, keepaspectratio]{summary_posterior_summary.png}
 \caption{}
 \label{fig:summary_post}
 \end{figure}
+
 \begin{figure}[!h]
 \includegraphics[width=\textwidth, height=15cm, keepaspectratio]{summary_prior_summary.png}
 \caption{}
 \label{fig:summary_prior}
 \end{figure}
 
+\begin{figure}[!h]
+\includegraphics[width=\textwidth, height=15cm, keepaspectratio]{summary_posterior_summary_newWhiten.png}
+\caption{}
+\label{fig:summary_post_newWhiten}
+\end{figure}
+
+
+
 \begin{table}[]
 \centering
-\caption{My caption}
+\caption{The summary for ten gateway data analysis. $\delta \Delta t$ is the median of the difference between the measured time delay and the correct time delay. $\delta\Delta t$($68\%$) is the halfwidth of the $68\%$ credible region.}
 \label{tab:summary}
 \begin{tabular}{|l|l|r|l|l|l|l|}
 \hline
@@ -180,7 +197,7 @@ Fig \ref{fig:summary_post} and fig \ref{fig:summary_prior} show the posterior an
 3                                           & 0.60                   & 3.45                                                 & 1.50                    & 1.80                            & 0.90                    & 0.75                            \\ \hline
 4                                           & 0.49                   & 1.65                                                 & -0.71                   & 1.35                            & -1.31                   & 0.90                            \\ \hline
 5                                           & 6.65                   & 6.91                                                 & -2.96                   & 0.60                            & -4.46                   & 2.25                            \\ \hline
-6                                           & -0.80                  & 4.05                                                 & -1.49                   & 1.35                            & -1.13                   & 10.8                            \\ \hline
+6                                           & -0.80                  & 4.05                                                 & -14.9                   & 1.35                            & -11.3                  & 10.8                            \\ \hline
 7                                           & 1.92                   & 3.75                                                 & -0.18                   & 3.45                            & 0.72                    & 4.5                             \\ \hline
 8                                           & 4.13                   & 7.96                                                 & 1.73                    & 0.15                            & 0.83                    & 2.10                            \\ \hline
 9                                           & -3.18                  & 9.01                                                 & -23.9                   & 1.05                            & -18.49                  & 2.70                            \\ \hline

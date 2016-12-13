@@ -411,6 +411,8 @@ class SLTimer(object):
             idx = (np.abs(array-value)).argmin()
             return idx
         halftile=[]
+        tile16=[]
+        tile84=[]
         for index, result in enumerate(results):
             results[index] = self.plot_explikelihood_same_file(result, 
                                               bins=bins, plot_range=plot_range,
@@ -424,6 +426,8 @@ class SLTimer(object):
             posteriors.append(posterior)
             step=posterior[1,0] - posterior[0,0]
             halftile.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.5)]-truth[index])
+            tile16.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.16)]-truth[index])
+            tile84.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.84)]-truth[index])
         ax.set_xlabel("$\Delta t - \Delta t_{True}(days)$")
 #        fig.suptitle("summarize posterior")
         fig.savefig("{0}_summary.png".format(outName), bbox_inches='tight')
@@ -434,6 +438,7 @@ class SLTimer(object):
         ax.set_xlabel("$\Delta t - \Delta t_{True}(days)$")
         ax.set_ylabel("number of dataset")
         fig.savefig("{0}_summary_hist.png".format(outName))
+        print([tile84[index]-tile16[index] for index  in range(len(tile16))])
 
     def plot_likelihood_from_file(self, file_name,
                                   chisquare=False, likelihood=False, bins=20,

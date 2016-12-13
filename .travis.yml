@@ -20,10 +20,15 @@ install:
   - pip install coveralls
   # And finally we set up SLTimer:
   - source setup/setup.sh
-  # Set up to run jupyter notebooks:
+  # Set up to run jupyter notebooks and latex:
+  - sudo apt-get install latexmk
+  - sudo apt-get install latex-xcolor
   - sudo apt-get install texlive-latex-recommended
   - sudo apt-get install texlive-latex-extra
   - sudo apt-get install texlive-fonts-recommended
+  - sudo apt-get install texlive-generic-recommended
+  - sudo apt-get install texlive-fonts-extra
+  - sudo apt-get install texlive-publishers
   - sudo apt-get install chktex
   - sudo apt-get install dvipng
   - conda install jupyter
@@ -44,6 +49,28 @@ script:
     --ExecutePreprocessor.timeout=600 --to notebook --execute notebooks/SLTimer_TDC2_Analysis.ipynb
   # Build the docs:
   - sphinx-build -b html -d _build/doctrees docs _build/html
+  # Make the PDF of any Notes or papers, and move it to the top level,
+  # ready for deployment.
+  - FOLDER="docs/desc-0000-sltimer-tdc2_gateway_analysis"
+  - PAPER="desc-0000-sltimer-tdc2_gateway_analysis.pdf"
+  - make -C "$FOLDER"
+  - cp "$FOLDER"/"$PAPER" .
+  # Prepare to deploy final and draft versions.
+  # 1) If it's the master branch being updated, push to a "pdf" branch.
+  # 2) If it's a development branch being updated, push to a "latest"
+  # branch named after the dev branch.
+  - if [ "$TRAVIS_BRANCH" == "master" ]; then REMOTEBRANCH="pdf" ; fi
+  - if [ "$TRAVIS_BRANCH" != "master" ]; then REMOTEBRANCH="latest/$TRAVIS_BRANCH" ; fi
 
-after_success:
+# Finally, deploy the PDF by force-pushing to an otherwise empty
+# orphan branch (ie one with no history). This saves the repo from
+# bloating. And then run coveralls.
+after_success: |
+  if [ -n "$GITHUB_API_KEY" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+    git checkout --orphan "$REMOTEBRANCH"
+    git rm -rf .
+    git add -f "$PAPER"
+    git -c user.name='travis' -c user.email='travis' commit -m init
+    git push -q -f https://drphilmarshall:$GITHUB_API_KEY@github.com/DarkEnergyScienceCollaboration/start_paper "$REMOTEBRANCH"
+  fi
   - coveralls

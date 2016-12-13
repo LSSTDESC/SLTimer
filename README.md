@@ -1,9 +1,9 @@
 # SLTimer
-[![Build Status](https://travis-ci.org/DarkEnergyScienceCollaboration/SLTimer.svg?branch=master)](https://travis-ci.org/DarkEnergyScienceCollaboration/SLTimer)[![Coverage Status](https://coveralls.io/repos/github/DarkEnergyScienceCollaboration/SLTimer/badge.svg?branch=master)](https://coveralls.io/github/DarkEnergyScienceCollaboration/SLTimer?branch=master)
+[![Build Status](https://travis-ci.org/LSSTDESC/SLTimer.svg?branch=master)](https://travis-ci.org/LSSTDESC/SLTimer)[![Coverage Status](https://coveralls.io/repos/github/LSSTDESC/SLTimer/badge.svg?branch=master)](https://coveralls.io/github/LSSTDESC/SLTimer?branch=master)
 
 Time delay measurement from LSST light curves.
 
-In the first instance (DC1), SLTimer will be a simple python class for calling community-developed time delay estimation algorithms, to enable early testing of DM-produced light curves in the [Twinkles project](https://github.com/DarkEnergyScienceCollaboration/Twinkles), and to check the Evil Team's simulated light curves in the [2nd Time Delay Challenge](http://timdelaychallenge.org). 
+In the first instance (DC1), SLTimer will be a simple python class for calling community-developed time delay estimation algorithms, to enable early testing of DM-produced light curves in the [Twinkles project](https://github.com/LSSTDESC/Twinkles), and to check the Evil Team's simulated light curves in the [2nd Time Delay Challenge](http://timdelaychallenge.org). 
 
 http://sltimer.readthedocs.io/
 
@@ -13,23 +13,24 @@ http://sltimer.readthedocs.io/
 
 Run the SLTimer IPython notebooks with [Binder](http://mybinder.org):
 
-[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org/repo/DarkEnergyScienceCollaboration/SLTimer)
+[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org/repo/LSSTDESC/SLTimer)
 
 Browse them on GitHub:
-* [PyCS Tutorial](https://github.com/DarkEnergyScienceCollaboration/SLTimer/blob/master/notebooks/PyCS_Tutorial.ipynb): all of the steps in the `PyCS` demo1 tutorial, in notebook form.
-* [SLTimer Tutorial](https://github.com/DarkEnergyScienceCollaboration/SLTimer/blob/master/notebooks/SLTimer_Tutorial.ipynb): carry out a simple "free-knot spline" `PyCS` model fit, on the `PyCS` demo1 trialcurves dataset.
+* [PyCS Tutorial](https://github.com/LSSTDESC/SLTimer/blob/master/notebooks/PyCS_Tutorial.ipynb): all of the steps in the `PyCS` demo1 tutorial, in notebook form.
+* [SLTimer Tutorial](https://github.com/LSSTDESC/SLTimer/blob/master/notebooks/SLTimer_Tutorial.ipynb): carry out a simple "free-knot spline" `PyCS` model fit, on the `PyCS` demo1 trialcurves dataset.
 
 ## People
 
 SLTimer development:
-* [Tom Glanzman](https://github.com/DarkEnergyScienceCollaboration/SLTimer/issues/new?body=@TomGlanzman) (SLAC)
-* [Phil Marshall](https://github.com/DarkEnergyScienceCollaboration/SLTimer/issues/new?body=@drphilmarshall) (SLAC)
-* [Milan M. Williams](https://github.com/DarkEnergyScienceCollaboration/SLTimer/issues/new?body=@milanwilliams) (Notre Dame HS, San Jose)
+* [Phil Marshall](https://github.com/LSSTDESC/SLTimer/issues/new?body=@drphilmarshall) (SLAC)
+* [Chun-Hao To](https://github.com/LSSTDESC/SLTimer/issues/new?body=@chto) (Stanford)
+* [Milan M. Williams](https://github.com/LSSTDESC/SLTimer/issues/new?body=@milanwilliams) (Notre Dame HS, San Jose)
+* [Tom Glanzman](https://github.com/LSSTDESC/SLTimer/issues/new?body=@TomGlanzman) (SLAC)
 
 Open source time delay measurement software:
 * Malte Tewes (PyCS)
 
 ## License, Contributing etc
 
-This is open source software, available under the BSD license. If you are interested in this project, please do drop us a line via the hyperlinked contact names above, or by [writing us an issue](https://github.com/DarkEnergyScienceCollaboration/SLTimer/issues/new). To get started contributing to the SLTimer project, fork the repo and work through the [installation notes](https://github.com/DarkEnergyScienceCollaboration/SLTimer/blob/master/INSTALL.md). Pull requests are always welcome! We'd love to run your time delay measurement code :-)
+This is open source software, available under the BSD license. If you are interested in this project, please do drop us a line via the hyperlinked contact names above, or by [writing us an issue](https://github.com/LSSTDESC/SLTimer/issues/new). To get started contributing to the SLTimer project, fork the repo and work through the [installation notes](https://github.com/LSSTDESC/SLTimer/blob/master/INSTALL.md). Pull requests are always welcome! We'd love to run your time delay measurement code :-)
 

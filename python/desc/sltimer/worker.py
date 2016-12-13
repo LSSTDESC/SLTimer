@@ -413,6 +413,7 @@ class SLTimer(object):
         halftile=[]
         tile16=[]
         tile84=[]
+        newtruth=[]
         for index, result in enumerate(results):
             results[index] = self.plot_explikelihood_same_file(result, 
                                               bins=bins, plot_range=plot_range,
@@ -428,6 +429,7 @@ class SLTimer(object):
             halftile.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.5)]-truth[index])
             tile16.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.16)]-truth[index])
             tile84.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.84)]-truth[index])
+            newtruth.append(truth[index])
         ax.set_xlabel("$\Delta t - \Delta t_{True}(days)$")
 #        fig.suptitle("summarize posterior")
         fig.savefig("{0}_summary.png".format(outName), bbox_inches='tight')
@@ -442,8 +444,8 @@ class SLTimer(object):
         error = [(tile84[index]-tile16[index])/2.0 for index in range(len(tile16))]
         print("medium: {0}".format(halftile))
         print("68% error: {0}".format(error))
-        print("Accuracy: {0}".format(np.mean(np.array(halftile)/truth)))
-        print("Precision: {0}".format(np.mean(np.array(error)/truth)))
+        print("Accuracy:{0}".format(np.mean(np.absolute(np.array(halftile)/newtruth))))
+        print("Precision:{0}".format(np.mean(np.absolute(np.array(error)/newtruth))))
 
     def plot_likelihood_from_file(self, file_name,
                                   chisquare=False, likelihood=False, bins=20,

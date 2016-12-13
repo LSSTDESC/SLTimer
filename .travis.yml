@@ -77,6 +77,6 @@ after_success: |
     git rm -rf .
     git add -f "$PAPER"
     git -c user.name='travis' -c user.email='travis' commit -m init
-    git push -q -f https://drphilmarshall:$GITHUB_API_KEY@github.com/DarkEnergyScienceCollaboration/start_paper "$REMOTEBRANCH"
+    git push -q -f https://drphilmarshall:$GITHUB_API_KEY@github.com/LSSTDESC/SLTimer "$REMOTEBRANCH"
   fi
   - coveralls

@@ -67,6 +67,8 @@ script:
   # branch named after the dev branch.
   - if [ "$TRAVIS_BRANCH" == "master" ]; then REMOTEBRANCH="pdf" ; fi
   - if [ "$TRAVIS_BRANCH" != "master" ]; then REMOTEBRANCH="latest/$TRAVIS_BRANCH" ; fi
+  # Run coveralls. Should be done after_success, really - but here shoudl be good enough.
+  - coveralls
 
 # Finally, deploy the PDF by force-pushing to an otherwise empty
 # orphan branch (ie one with no history). This saves the repo from
@@ -79,4 +81,3 @@ after_success: |
     git -c user.name='travis' -c user.email='travis' commit -m init
     git push -q -f https://drphilmarshall:$GITHUB_API_KEY@github.com/LSSTDESC/SLTimer "$REMOTEBRANCH"
   fi
-  - coveralls

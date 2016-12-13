@@ -15,6 +15,7 @@
 % Custom commands from LSST DESC, see texmf/styles/lsstdesc_macros.sty
 \usepackage{texmf/styles/lsstdesc_macros}
 \usepackage{graphics, graphicx}
+\usepackage{multirow}
 \graphicspath{{./}{./figures/}}
 \pdfmapfile{+mathpple.map} % Seems Travis needs this, for some reason!
 \bibliographystyle{apj}
@@ -56,9 +57,13 @@ The paper will be structured as follows.  \textcolor{red}{more}
 %------------------------------------------------------------------------
 \section{Method}
 \label{sec:method}
+
 In this section, we describe the process of our analysis step by step.
+
 \subsection{Whitening method}
+
 The main difference between TDC2 and TDC1 data is that TDC2 tries to model the light curve taken by six different filter, which add additional variability to the light curves. We adopt the whitening method, which offsets the light curve to get a set of points that look more like they were taken in one filter. We test two kinds of whitening method. The first one is to offset  the magnitude of whole light curves to a common mean. The second one do the same thing as the first one, but instead of offsetting all the light curves, it offset light curves season by season. Obviously, the second one looks more reasonable because we don't expect that lightcurves in different bands have long term relations with each others. However, the second whitening will also introduced additional fluctuations to light curves, and will probably wash out the signal.
+
 
 \subsection{Additional Noise Model}
 We notice that the error in the lightcurve can be larger to the reported error in TDC2 data. For example, the data in different filters will have different mean amplitude. Though the difference is partially corrected by the whitening method, it will make our light curve noisier. The micro-lensing variability could also be different for data in different filters. Besides, the light curves are sampled at an average time step 4 days, and quasars might have some high frequency fluctuation, which will also add additional noise to our light curve.
@@ -68,7 +73,7 @@ To address this issue, we assume a simple model with only one parameter $\sigma_
 \subsection{PyCS}
 PyCS is a package that implements free knot spline technique described by \cite{2013A&A...553A.120T}. It models both intrinsic quasar fluctuation and also fluctuation caused by micro-lensing with two spline functions. With the use of the PyCS package, we can compute the $\chi^2$ of the fitting for a given time delay $\Delta t$.
 
-To analyze the data, we draw  a thousand time delay samples from -150 days to 150 days with a constant time step. For each time delay, we can compute a $\chi^2$. The log likelihood function, defined as $log(P(data \mid \Delta t))$, could be computed by the following formula,
+To analyze the data, we compute likelihood on 1000 time delay grids from -150 days to 150 days.  For each time delay, we can compute a $\chi^2$. The log likelihood function, defined as $log(P(data \mid \Delta t))$, could be computed by the following formula,
 \begin{equation}
 log(P(data \mid \Delta t))  = log (\Sigma_i  \frac{1}{\sqrt{2 \pi \sigma_i^2}} ) -\frac{1}{2} \chi^2,
 \end{equation}
@@ -132,11 +137,14 @@ $P(\Delta t \mid data) = P(data \mid \Delta t) P(\Delta t)$
 \section{Results}
 \label{sec:results}
 In this section, we'll show analysis on gateway one data as an example, and we'll give a summary posterior plot for all ten gateway data. The analysis on other 9 gateway data  will be leaved to the appendix.
+
 \subsection{Analysis on gateway one data}
-We follow the methods described in section \ref{sec:method}.
+
+We follow the methods described in section \ref{sec:method}.  For simplicity, in this subsection, I'll only show data that is whitened by whitening method 1.
 \begin{enumerate}
-\item Determine $\sigma_{intrinsic}$: we need to determine $\sigma_{intrinsic}$. Fig \ref{fig:sigma1} shows how likelihood change with different $\sigma_{intrinsic}$ at different time delay. First, we find that there is a clear peak at $\sigma_{intrinsic}=0.202$, and this peak does not vary at different time delays.
-Therefore, instead of sampling on $\sigma_{intrinsic}$ to time delay parameter space, we can find the optimal $\sigma_{intrinsic}$ at a given time delay first and then sample on time delay parameter space.
+\item Determine $\sigma_{intrinsic}$:
+Fig \ref{fig:sigma1} shows how likelihood change with different $\sigma_{intrinsic}$ at different time delay. First, we find that there is a clear peak at $\sigma_{intrinsic}=0.202$, and this peak does not vary at different time delays. In general, we need to compute likelihood on $\sigma_{intrinsic}$ to time delay parameter spaces. However, since the optimal $\sigma_{intrinsic}$ seems not varying for different time delay, we can find the optimal $\sigma_{intrinsic}$ at a given time delay first and then sample on time delay parameter space.
+
 \begin{figure}[!h]
 \includegraphics[width=\textwidth, height=15cm, keepaspectratio]{sigma_0.png}
 \caption{Likelihood to $\sigma_{Intrinsic}$ plot}
@@ -144,17 +152,67 @@ Therefore, instead of sampling on $\sigma_{intrinsic}$ to time delay parameter s
 \end{figure}
 
 \item Compute Prior Likelihood and Posterior:
-We compute the prior by formula \ref{eqn:prior} and likelihood with the aid of PyCS code.  We combine the prior and likelihood to get posterior. The result is fig \ref{fig:log_data1}.
+
+After finding the optimal $\sigma_{intrinsic}$, we rescale the noise of light curves by $\sigma_{new}=\sqrt{\sigma_{intrinsic}^2+\sigma_{old}^2}$. Then, we compute the prior by formula \ref{eqn:prior} and likelihood with the aid of PyCS code. The prior and likelihood will be combined to get posterior. Fig \ref{fig:log_data1} shows the result.  There are couples of things to be noticed. First, the constraint on time delay is improved from prior to posterior. Second, though prior information gives us a loose constraint on time delay, it damps some of the fake peaks on likelihood and helps us identify the true time delay on posterior. For example, though there is a clear peak at true time  delay on likelihood, there are some fake outliers at  $\Delta t =140$ to $150$ and $\Delta t =-130$ to $-150$. The prior, though gives a loose constraint on time delay, damps these outliers, which helps us identified true time delay from posterior.
+
 \begin{figure}[!h]
 \includegraphics[width=\textwidth, height=15cm, keepaspectratio]{data1_full_log.png}
-\caption{Likelihood to $\sigma_{Intrinsic}$ plot}
+\caption{The top panel shows the likelihood distribution. The middle plot is the prior derived from equation \ref{eqn:prior}, and the bottom plot is the posterior $P(\Delta t \mid data)$ }. Dark dash line marks the correct time delay.
 \label{fig:log_data1}
 \end{figure}
 \end{enumerate}
 
 
+\subsection{Summary of all ten gateway data sets}
+Fig \ref{fig:summary_post} and fig \ref{fig:summary_prior} show the posterior and prior distributions for all 10 data, which are also summarized in Table \ref{tab:summary}.  We also compute the precision, defined as
+\begin{equation}
+P=\frac{1}{N} \Sigma_i (\frac{\delta t_{i, True}}{\Delta t_i})
+\end{equation}
+and the accuracy
+\begin{equation}
+A = \frac{1}{N} \Sigma_i (\frac{\Delta t_i-\Delta t_{i, True}}{\Delta t_i}),
+\end{equation}
+where N is number of data, $\Delta t_i$ is the median of posterior, and $\delta t_i$ is the error of time delay, estimated by halfwidth of $68\%$ confidence region of posterior. For this ten gateway data, we reach P=0.040 and A=0.068
+\begin{figure}[!h]
+\includegraphics[width=\textwidth, height=15cm, keepaspectratio]{summary_posterior_summary.png}
+\caption{}
+\label{fig:summary_post}
+\end{figure}
 
-% ----------------------------------------------------------------------
+\begin{figure}[!h]
+\includegraphics[width=\textwidth, height=15cm, keepaspectratio]{summary_prior_summary.png}
+\caption{}
+\label{fig:summary_prior}
+\end{figure}
+
+\begin{figure}[!h]
+\includegraphics[width=\textwidth, height=15cm, keepaspectratio]{summary_posterior_summary_newWhiten.png}
+\caption{}
+\label{fig:summary_post_newWhiten}
+\end{figure}
+
+
+
+\begin{table}[]
+\centering
+\caption{The summary for ten gateway data analysis. $\delta \Delta t$ is the median of the difference between the measured time delay and the correct time delay. $\delta\Delta t$($68\%$) is the halfwidth of the $68\%$ credible region.}
+\label{tab:summary}
+\begin{tabular}{|l|l|r|l|l|l|l|}
+\hline
+\multicolumn{1}{|c|}{\multirow{2}{*}{data}} & \multicolumn{2}{l|}{Prior}                                                    & \multicolumn{2}{l|}{Posterior (Whitening 1)}              & \multicolumn{2}{l|}{Posterior (Whitening 2)}              \\ \cline{2-7}
+\multicolumn{1}{|c|}{}                      & $\delta\Delta t$(days) & \multicolumn{1}{l|}{$\delta\Delta t$(68$\%$) (days)} & $\delta\Delta t$ (days) & $\delta\Delta t$(68$\%$) (days) & $\delta\Delta t$ (days) & $\delta\Delta t$(68$\%$) (days) \\ \hline
+1                                           & 2.97                   & 3.90                                                 & -0.34                   & 0.30                            & -1.54                   & 1.50                            \\ \hline
+2                                           & -0.09                  & 2.85                                                 & -5.79                   & 7.36                            & -6.40                   & 0.30                            \\ \hline
+3                                           & 0.60                   & 3.45                                                 & 1.50                    & 1.80                            & 0.90                    & 0.75                            \\ \hline
+4                                           & 0.49                   & 1.65                                                 & -0.71                   & 1.35                            & -1.31                   & 0.90                            \\ \hline
+5                                           & 6.65                   & 6.91                                                 & -2.96                   & 0.60                            & -4.46                   & 2.25                            \\ \hline
+6                                           & -0.80                  & 4.05                                                 & -14.9                   & 1.35                            & -11.3                  & 10.8                            \\ \hline
+7                                           & 1.92                   & 3.75                                                 & -0.18                   & 3.45                            & 0.72                    & 4.5                             \\ \hline
+8                                           & 4.13                   & 7.96                                                 & 1.73                    & 0.15                            & 0.83                    & 2.10                            \\ \hline
+9                                           & -3.18                  & 9.01                                                 & -23.9                   & 1.05                            & -18.49                  & 2.70                            \\ \hline
+10                                          & -0.13                  & 3.00                                                 & -0.73                   & 0.15                            & -1.03                   & 0.15                            \\ \hline
+\end{tabular}
+\end{table}
 
 \section{Discussion}
 \label{sec:discussion}

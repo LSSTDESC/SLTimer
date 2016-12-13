@@ -411,6 +411,8 @@ class SLTimer(object):
             idx = (np.abs(array-value)).argmin()
             return idx
         halftile=[]
+        tile16=[]
+        tile84=[]
         for index, result in enumerate(results):
             results[index] = self.plot_explikelihood_same_file(result, 
                                               bins=bins, plot_range=plot_range,
@@ -424,6 +426,8 @@ class SLTimer(object):
             posteriors.append(posterior)
             step=posterior[1,0] - posterior[0,0]
             halftile.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.5)]-truth[index])
+            tile16.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.16)]-truth[index])
+            tile84.append(posterior[:,0][find_nearest(np.cumsum(posterior[:,1]*step),0.84)]-truth[index])
         ax.set_xlabel("$\Delta t - \Delta t_{True}(days)$")
 #        fig.suptitle("summarize posterior")
         fig.savefig("{0}_summary.png".format(outName), bbox_inches='tight')
@@ -434,6 +438,12 @@ class SLTimer(object):
         ax.set_xlabel("$\Delta t - \Delta t_{True}(days)$")
         ax.set_ylabel("number of dataset")
         fig.savefig("{0}_summary_hist.png".format(outName))
+
+        error = [(tile84[index]-tile16[index])/2.0 for index in range(len(tile16))]
+        print("medium: {0}".format(halftile))
+        print("68% error: {0}".format(error))
+        print("Accuracy: {0}".format(np.mean(np.array(halftile)/truth)))
+        print("Precision: {0}".format(np.mean(np.array(error)/truth)))
 
     def plot_likelihood_from_file(self, file_name,
                                   chisquare=False, likelihood=False, bins=20,
@@ -543,7 +553,7 @@ class SLTimer(object):
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[1, 0])
         ax3 = fig.add_subplot(gs[2, 0])
-        gs.update(left=0.01, right=0.99, hspace=0.3)
+        gs.update(left=0.23, right=0.97, hspace=0.3)
         def plotBatch(axes, result_inside, labelcolor=None):
             ax1 = axes[0]
             ax2 = axes[1]
@@ -582,7 +592,7 @@ class SLTimer(object):
         else:
             plotBatch(axes, result)
         plt.legend(loc=(1.05, 2.9))
-        fig.suptitle("log likelihood")
+#        fig.suptitle("log likelihood")
         fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
                                                             result[0].shape[0]))
         return

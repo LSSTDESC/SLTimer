@@ -452,28 +452,34 @@ class SLTimer(object):
                                   outName="from_file_", corner_plot=True,
                                   add_prior=False, batch_sigma=False,
                                   method="plot_log_file", plot_range=None,
-                                  shift=0, posteriorlabelcolor=None):
+                                  shift=0, posteriorlabelcolor=None, axes=None,
+                                  linestyle=None):
+
         result = self.read_likelihood_file(file_name)
         if add_prior:
             result_new = self.add_prior_to_sample(result)
             np.save(outName+"prior_likelihood_posterior.npy", result_new)
             if method == "plot exp in same graph":
-                self.plot_explikelihood_same_file(result_new,
+                return self.plot_explikelihood_same_file(result_new,
                                                   outName+file_name[-10:],
                                                   bins=bins,
                                                   plot_range=plot_range,
                                                   shift=shift,
-                                                  posteriorlabelcolor=posteriorlabelcolor)
+                                                  posteriorlabelcolor=posteriorlabelcolor,
+                                                  axes=axes,
+                                                  linestyle=linestyle)
 
             else:
                 if batch_sigma:
                     result_new.append(result['sigma_intrinsic'])
-                self.plot_log_likelihood_with_prior(result_new,
+                return self.plot_log_likelihood_with_prior(result_new,
                                                     outName+file_name[-10:],
                                                     bins=bins,
                                                     batch_sigma=batch_sigma,
                                                     plot_range=plot_range,
-                                                    posteriorlabelcolor=posteriorlabelcolor)
+                                                    posteriorlabelcolor=posteriorlabelcolor,
+                                                    axes=axes,
+                                                    linestyle=linestyle)
         else:
             result_new = []
             for keys in result.keys():
@@ -494,7 +500,8 @@ class SLTimer(object):
     def plot_explikelihood_same_file(self, result, outName="",
                                      bins=20, plot_range=None, shift=0,
                                      axes=None, posteriorOnly=False,
-                                     posteriorlabelcolor=None, number=2):
+                                     posteriorlabelcolor=None, number=2,
+                                     linestyle="--"):
         if axes is None:
             fig = plt.figure(figsize=(5, 10))
             ax = fig.add_subplot(111)
@@ -511,12 +518,14 @@ class SLTimer(object):
             self.internal_plot(result=original,
                                bins=bins, corner_plot=False,
                                ax=ax, chisquare=True, labelcolor=labelcolor,
-                               plot_range=plot_range, shift=shift)
+                               plot_range=plot_range, shift=shift,
+                               linestyle=linestyle)
             labelcolor = ["prior", "k"]
             self.internal_plot(result=prior,
                                bins=bins, corner_plot=False,
                                ax=ax, chisquare=True, labelcolor=labelcolor,
-                               plot_range=plot_range, shift=shift)
+                               plot_range=plot_range, shift=shift,
+                               linestyle=linestyle)
         if posteriorlabelcolor is None:
             labelcolor = ["posterior", "r"]
         else:
@@ -524,20 +533,22 @@ class SLTimer(object):
         self.internal_plot(result=result[number],
                            bins=bins, corner_plot=False,
                            ax=ax, chisquare=True, labelcolor=labelcolor,
-                           plot_range=plot_range, shift=shift)
+                           plot_range=plot_range, shift=shift,
+                           linestyle=linestyle)
         ax.set_ylabel(r"probability")
         plt.legend(loc='lower left', bbox_to_anchor=(1.05, 0))
         if axes is None:
             fig.suptitle("prior_likelihood_posterior")
             fig.savefig("{0}_prior_likelihood_posterior_{1}_samples.png".format(outName, result[0].shape[0]))
-        return result
+        return ax
 
 
 
     def plot_log_likelihood_with_prior(self, result, outName,
                                        bins=20, batch_sigma=False,
                                        plot_range=None,
-                                       posteriorlabelcolor=None):
+                                       posteriorlabelcolor=None,
+                                       axes=None, linestyle='-'):
         import matplotlib.gridspec as gridspec
         if batch_sigma:
             sigmaArr = np.unique(result[3])
@@ -550,12 +561,17 @@ class SLTimer(object):
                 originals.append(result[0][index])
                 priors.append(result[1][index])
                 combineds.append(result[2][index])
-        fig = plt.figure(figsize=(5, 10))
-        gs = gridspec.GridSpec(3, 1, height_ratios=[4, 4, 4])
-        ax1 = fig.add_subplot(gs[0, 0])
-        ax2 = fig.add_subplot(gs[1, 0])
-        ax3 = fig.add_subplot(gs[2, 0])
-        gs.update(left=0.23, right=0.97, hspace=0.3)
+        if axes is None:
+            fig = plt.figure(figsize=(5, 10))
+            gs = gridspec.GridSpec(3, 1, height_ratios=[4, 4, 4])
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[1, 0])
+            ax3 = fig.add_subplot(gs[2, 0])
+            gs.update(left=0.23, right=0.97, hspace=0.3)
+        else:
+            ax1 = axes[0]
+            ax2 = axes[1]
+            ax3 = axes[2]
         def plotBatch(axes, result_inside, labelcolor=None):
             ax1 = axes[0]
             ax2 = axes[1]
@@ -566,21 +582,21 @@ class SLTimer(object):
             self.internal_plot(result=original,
                                bins=bins, corner_plot=False,
                                ax=ax1, chisquare=True, labelcolor=labelcolor,
-                               plot_range=plot_range)
+                               plot_range=plot_range, linestyle=linestyle)
             ax1.set_ylabel(r'$log(L)$')
             ax1.set_xlabel('')
             self.internal_plot(result=prior,
                                bins=bins, corner_plot=False,
                                ax=ax2, chisquare=True,
                                labelcolor=[None,'darkolivegreen'],
-                               plot_range=plot_range)
+                               plot_range=plot_range, linestyle=linestyle)
             ax2.set_ylabel(r'$log(prior)$')
             ax2.set_xlabel('')
             self.internal_plot(result=combined,
                                bins=bins, corner_plot=False,
                                ax=ax3, chisquare=True,
                                labelcolor=posteriorlabelcolor,
-                               plot_range=plot_range)
+                               plot_range=plot_range, linestyle=linestyle)
             ax3.set_ylabel(r'$log(posterior)$')
         axes = [ax1, ax2, ax3]
         if batch_sigma:
@@ -595,9 +611,10 @@ class SLTimer(object):
             plotBatch(axes, result)
         plt.legend(loc=(1.05, 2.9))
 #        fig.suptitle("log likelihood")
-        fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
-                                                            result[0].shape[0]))
-        return
+        if axes is None:
+            fig.savefig("{0}_likelihood_{1}_samples.png".format(outName,
+                                                                result[0].shape[0]))
+        return axes
 
     def plot_likelihood(self, result, outName, plot_contours=True,
                         plot_density=True, chisquare=False, bins=20,
@@ -625,7 +642,7 @@ class SLTimer(object):
     def internal_plot(self, result, plot_contours=True,
                       plot_density=True, chisquare=False, likelihood=False, bins=20,
                       corner_plot=True, ax=None, labelcolor=None,
-                      plot_range=None, shift=0):
+                      plot_range=None, shift=0, linestyle='-'):
         import corner
         sample = result[:, :-1]
         if not chisquare:
@@ -675,7 +692,7 @@ class SLTimer(object):
                 color = 'k'
                 label = None
             ax.step(bincentres, wd/counts, where='mid', color=color,
-                    linestyle="-", label=label)
+                    linestyle=linestyle, label=label)
             import matplotlib.ticker as mtick
             ax.yaxis.set_major_formatter(mtick.FormatStrFormatter('%.2e'))
             fig = None

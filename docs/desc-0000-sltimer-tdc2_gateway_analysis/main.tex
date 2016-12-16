@@ -52,13 +52,14 @@ We use the 10 gateway dataset light curves and the PyCS curve-shifting analysis 
 
 \section{Introduction}
 \label{sec:intro}
-The second time delay challenge (hereafter as TDC2) is a proposed project to investigate how accurate time delay can we measure from multi-filter light curve data.  TDC2 team has made the ten gateway data, and the goal of this paper is to analyze these data to answer the following questions:
+The second time delay challenge (hereafter as TDC2) is a proposed project to investigate how accurate time delay can we measure from multi-filter light curve data.  TDC2 team has made ten gateway data. The goal of this paper is to analyze these data and answer the following questions:
 \begin{enumerate}
+
 \item Whether simple lenses model could help us measure time delay better?
 \item What kind of whitening method, a method to make the data as if they were taken from the same filter, should we use?
 \item Is it possible to measure time delay to $0.2\%$ accuracy and $0.5\%$ precision? 
 
-The paper will be structured as follows.  In section \ref{sec:method}, we will describe the method we use, and the result will be shown in section \ref{sec:results}. In section \ref{sec:discussion}, we will discussed the results and then in section \ref{sec:conclusions}, we summarize our conclusions.  
+The paper will be structured as follows.  In section \ref{sec:method}, we will describe the method we use, and show the result in section \ref{sec:results}. In section \ref{sec:discussion}, we will discussed the results and then, in section \ref{sec:conclusions}, we summarize our conclusions.  
 
 \end{enumerate}
 
@@ -70,7 +71,7 @@ In this section, we describe the process of our analysis step by step.
 
 \subsection{Whitening method}
 
-The main difference between TDC2 and TDC1 data is that TDC2 tries to model the light curve taken by six different filter, which add additional variability to the light curves. We adopt the whitening method, which offsets the light curve to get a set of points that look more like they were taken in one filter. We test two kinds of whitening method. The first one (Whitening method 1 hearafter) is to offset  the magnitude of whole light curves to a common mean. The second one Whitening method 2 hearafter) do the same thing as the first one, but instead of offsetting all the light curves, it offset light curves season by season. Obviously, the second one looks more reasonable because we don't expect that lightcurves in different bands have long term relations with each others. However, the second whitening will also introduced additional fluctuations to light curves, and will probably wash out the signal.
+The main difference between TDC2 and TDC1 data is that TDC2 tries to model the light curve taken by six different filters, which add additional variability to the light curves. We adopt the whitening method, which offsets the light curve to get a set of points that look more like they were taken in one filter. We test two kinds of whitening method. The first one (Whitening method 1 hearafter) is to offset  the magnitude of whole light curves to a common mean. The second one (Whitening method 2 hearafter) does the same thing as the first one, but instead of offsetting all the light curves, it offset light curves season by season. Obviously, the second one looks more reasonable because we don't expect that lightcurves in different bands have long term relations with each others. However, the second whitening method will also introduce additional fluctuations to light curves, and will probably wash out the signal.
 
 
 \subsection{Additional Noise Model}
@@ -106,9 +107,9 @@ And we know $D_{\Delta t}$ is inverse proportional to $H_0$, so we can relate $D
 \begin{equation}
 D_{\Delta t}= \frac{Q}{H_0}
 \end{equation}
-Q will be given in TDC2 data.
+Q will be given in TDC2 data, and by change of scale we can make $c =1$
 
-From the equation $\Delta t = \frac{Q}{H_0}\Delta \phi$, where Q is a number given by the evil team, we know
+From the equation $\Delta t = \frac{Q}{H_0}\Delta \phi$,  we know
 $P(\Delta t | H_0, \Delta \phi) = \delta(\Delta t - \frac{Q}{H_0}\Delta \phi)$.
 Then we get
 
@@ -116,7 +117,7 @@ Then we get
 P(\Delta t) = \int\int \delta(\Delta t - \frac{Q \Delta \phi }{H_0}) P(H_0)P(\Delta \phi) dH_0 d\Delta \phi
 \end{align}
 
-We assume $H_0$ and $\Delta \phi$ be gaussian distributions with mean $\bar{H_0}, \bar{\Delta \Phi}$ and standard deviation $\sigma_{H}$, and $\sigma_{\Delta \phi}$.
+We assume $H_0$ and $\Delta \phi$ be gaussian distributions with means $\bar{H_0}, \bar{\Delta \Phi}$ and standard deviations $\sigma_{H}$, and $\sigma_{\Delta \phi}$. Then, we get
 
 \begin{align}
 P(\Delta t) &= \frac{1}{\sqrt{2\sigma_{H}^2\pi}}\frac{1}{\sqrt{2\sigma_{\Delta \Phi}^2\pi}}\int\int \delta(\Delta t - \frac{Q \Delta \phi}{H_0}) e^{-(\frac{H_0-\bar{H_0}}{\sigma_{H}})^2} e^{-(\frac{\Delta \Phi-\bar{\Delta \Phi}}{\sigma_{\Delta \Phi}})^2} dH_0 d\Delta \phi \\
@@ -144,7 +145,7 @@ $P(\Delta t \mid data) = P(data \mid \Delta t) P(\Delta t)$
 
 \section{Results}
 \label{sec:results}
-In this section, we'll show analysis on gateway one data as an example, and we'll give a summary posterior plot for all ten gateway data. The analysis on other 9 gateway data  will be leaved to the appendix.
+In this section, we'll show the analysis on gateway one data as an example, and we'll give a summary posterior plot for all ten gateway data. The analysis on other 9 gateway data  will be left to the appendix.
 
 \subsection{Analysis on gateway one data}
 
@@ -161,7 +162,7 @@ Fig \ref{fig:sigma1} shows how likelihood change with different $\sigma_{intrins
 
 \item Compute Prior Likelihood and Posterior:
 
-After finding the optimal $\sigma_{intrinsic}$, we rescale the noise of light curves by $\sigma_{new}=\sqrt{\sigma_{intrinsic}^2+\sigma_{old}^2}$. Then, we compute the prior by formula \ref{eqn:prior} and likelihood with the aid of PyCS code. The prior and likelihood will be combined to get posterior. Fig \ref{fig:log_data1} shows the result.  There are couples of things to be noticed. First, the constraint on time delay is improved from prior to posterior. Second, though prior information gives us a loose constraint on time delay, it damps some of the fake peaks on likelihood and helps us identify the true time delay on posterior. For example, though there is a clear peak at true time  delay on likelihood, there are some fake outliers at  $\Delta t =140$ to $150$ and $\Delta t =-130$ to $-150$. The prior, though gives a loose constraint on time delay, damps these outliers, which helps us identified true time delay from posterior.
+After finding the optimal $\sigma_{intrinsic}$, we rescale the noise of light curves by $\sigma_{new}=\sqrt{\sigma_{intrinsic}^2+\sigma_{old}^2}$. Then, we compute the prior by formula \ref{eqn:prior} and the likelihood with the aid of PyCS code. The prior and the likelihood will be combined to get posterior. Fig \ref{fig:log_data1} shows the result.  There are couples of things to be noticed. First, the constraint on time delay is improved from prior to posterior. Second, though prior information gives us a loose constraint on time delay, it damps some of the fake peaks on likelihood and helps us identify the true time delay on posterior. For example, though there is a clear peak at true time  delay on likelihood, there are some fake outliers at  $\Delta t =140$ to $150$ and $\Delta t =-130$ to $-150$. The prior, though gives a loose constraint on time delay, damps these outliers, and helps us identified true time delay from posterior.
 
 \begin{figure}[!h]
 \includegraphics[width=\textwidth, height=15cm, keepaspectratio]{data1_full_log.png}
@@ -176,23 +177,23 @@ Fig \ref{fig:summary_post} and fig \ref{fig:summary_prior} show the posterior an
 
 \begin{figure}[!h]
 \includegraphics[width=\textwidth, height=15cm, keepaspectratio]{summary_posterior_summary.png}
-\caption{}
+\caption{Summary of posterior plot. We plot the posterior P($\Delta t \mid data$) for all ten gateway data cleaned by Whitening method 1.}
 \label{fig:summary_post}
 \end{figure}
 
 \begin{figure}[!h]
 \includegraphics[width=\textwidth, height=15cm, keepaspectratio]{summary_prior_summary.png}
-\caption{}
+\caption{Summary of prior plot. We plot the prior P($\Delta t$) for all ten gateway data.}
 \label{fig:summary_prior}
 \end{figure}
 
 \begin{figure}[!h]
 \includegraphics[width=\textwidth, height=15cm, keepaspectratio]{summary_posterior_summary_newWhiten.png}
-\caption{}
+\caption{Summary of posterior plot. We plot the posterior P($\Delta t \mid data$) for all ten gateway data cleaned by Whitening method 2.}
 \label{fig:summary_post_newWhiten}
 \end{figure}
 
-The difference between two kinds of whitening method could be used to identify outliers. For example, we'll not trust the result if $\sigma\Delta t$($68\%$), the halfwidth of the $68\%$ credible region differs a lot. Also, if $\sigma\Delta t$($68\%$) is exceptionally small, say 1 day, the result might be dominate by the spike fluctuation in posterior. Besides, we don't expect to recover time delay larger than $120$, because the spline function will be able to fit light curves that don't match with each other.  Based on these consideration, we define the following criteria for good data:
+The difference between two kinds of whitening method could be used to identify outliers. For example, we'll not trust the result if $\sigma\Delta t$($68\%$), the halfwidth of the $68\%$ credible region differs a lot. Also, if $\sigma\Delta t$($68\%$) is exceptionally small, say 1 day, the result might be dominate by the spike fluctuation in posterior. Besides, we don't expect to recover time delay larger than $120$, because the spline function will be able to fit light curves well if  they don't match with each other.  Based on these consideration, we define the following criteria for a good data:
 \begin{enumerate}
 \item $\sigma\Delta t$($68\%$) $>$ 1 days
 \item The difference of $\sigma\Delta t$($68\%$) for whitening method 1 and whitening method 2 is smaller than 5 days
@@ -201,11 +202,11 @@ The difference between two kinds of whitening method could be used to identify o
 
 We can also compute the precision, defined as 
 \begin{equation}
-P=\frac{1}{N} \Sigma_i (\frac{\delta t_{i, True}}{\Delta t_i})
+P=\frac{1}{N} \Sigma_i (\frac{\lvert \delta t_{i, True} \rvert}{\Delta t_i})
 \end{equation}
 and the accuracy
 \begin{equation}
-A = \frac{1}{N} \Sigma_i (\frac{\Delta t_i-\Delta t_{i, True}}{\Delta t_i}),
+A = \frac{1}{N} \Sigma_i (\frac{\lvert \Delta t_i-\Delta t_{i, True} \rvert}{\Delta t_i}),
 \end{equation}
 where N is number of data, $\Delta t_i$ is the median of posterior, and $\delta t_i$ is the error of time delay, estimated by halfwidth of $68\%$ confidence region of posterior.  
 
@@ -236,7 +237,7 @@ After rejecting the outliers, we get $A=0.022$ and $P=0.054$ for whitening metho
 \section{Discussion}
 \label{sec:discussion}
 
-First, we find that the result from whitening method 1 and whitening method 2 is comparable. It is because though whitening method 2 helps spline function to fit the data better, it also introduces additional fluctuation in the data and washes out some of the signal. Second, we find even by this crude analysis, we can get time delay accuracy to $2\%$ and precision to $4\%$. We expect with the more subtle analysis, the good team could achieve much better accuracy and precision.  
+First, we find that the result from whitening method 1 and whitening method 2 is comparable. It is because though whitening method 2 helps spline function to fit the data better, it also introduces additional fluctuation in the data and washes out some of the signal. Second, we find that even by this crude analysis, we can get time delay accuracy to $2\%$ and precision to $4\%$. We expect with the more subtle analysis, the good team could achieve much better accuracy and precision.  
 % ----------------------------------------------------------------------
 
 \section{Conclusions}
